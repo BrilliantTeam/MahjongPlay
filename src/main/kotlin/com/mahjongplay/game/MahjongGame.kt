@@ -459,7 +459,7 @@ class MahjongGame(
                             if (res != null) {
                                 val ct2 = claimTargetBySeatDiff(idx, si)
                                 if (res.first == res.second) { pp.pon(discarded, ct2, player); listener?.onPon(pp, discarded, player); cannotDiscard += discarded }
-                                else { pp.chii(discarded, res, player); listener?.onChii(pp, discarded, player); addChiiCannotDiscardTiles(discarded, res, cannotDiscard) }
+                                else { pp.chii(discarded, res, player); listener?.onChii(pp, discarded, player); cannotDiscard += discarded; addChiiCannotDiscardTiles(discarded, res, cannotDiscard) }
                                 listener?.onHandsUpdated(pp); nextPlayer = pp; needDraw = false; someonePon = true; return@repeat
                             } else chiiList -= pp
                         } else {

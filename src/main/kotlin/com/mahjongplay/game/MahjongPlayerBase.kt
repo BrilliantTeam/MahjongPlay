@@ -641,7 +641,8 @@ abstract class MahjongPlayerBase {
         timeoutTile: MahjongTile,
         cannotDiscardTiles: List<MahjongTile>,
         skippable: Boolean,
-    ): MahjongTile = hands.findLast { it !in cannotDiscardTiles } ?: timeoutTile
+    ): MahjongTile =
+        hands.findLast { tile -> cannotDiscardTiles.none { it.mahjong4jTile == tile.mahjong4jTile } } ?: timeoutTile
 
     open suspend fun askToChii(
         tile: MahjongTile,
