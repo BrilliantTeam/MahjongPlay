@@ -138,7 +138,9 @@ abstract class MahjongPlayerBase {
 
     fun kakan(tile: MahjongTile, onKakan: (MahjongPlayerBase) -> Unit = {}) {
         onKakan.invoke(this)
-        val minKotsu = fuuroList.find { tile in it.tiles && it.mentsu is Kotsu }
+        val minKotsu = fuuroList.find { fuuro ->
+            fuuro.mentsu is Kotsu && fuuro.tiles.any { it.mahjong4jTile == tile.mahjong4jTile }
+        }
         fuuroList -= minKotsu!!
         val kakantsu = Kakantsu(tile.mahjong4jTile)
         val tiles = minKotsu.tiles.toMutableList().also { it += tile }
@@ -212,7 +214,7 @@ abstract class MahjongPlayerBase {
                 val mentsuList = fuuroListCopy.map { fuuro -> fuuro.mentsu }
                 val calculatedMachi = buildList {
                     MahjongTile.entries.filter { mjTile ->
-                        mjTile.mahjong4jTile != it.mahjong4jTile
+                        mjTile.code == mjTile.mahjong4jTile.code && mjTile.mahjong4jTile != it.mahjong4jTile
                     }.forEach { mjTile ->
                         val mj4jTile = mjTile.mahjong4jTile
                         val nowHands = handsCopy.toIntArray().apply { this[mj4jTile.code]++ }
@@ -307,7 +309,7 @@ abstract class MahjongPlayerBase {
 
     private val tilePairsForRiichi
         get() = buildList {
-            if (hands.size != 14) return@buildList
+            if (hands.size != 14 - fuuroList.size * 3) return@buildList
             val listToAdd = buildList {
                 hands.forEach { tile ->
                     val nowHands = hands.toMutableList().also { it -= tile }
@@ -354,7 +356,7 @@ abstract class MahjongPlayerBase {
         val waitingHandSize = 13 - fuuroList.size * 3
         if (hands.size > waitingHandSize) return emptyList()
 
-        return MahjongTile.entries.filter {
+        return MahjongTile.entries.filter { it.code == it.mahjong4jTile.code }.filter {
             val tileInHandsCount = hands.count { t -> t.mahjong4jTile == it.mahjong4jTile }
             val tileInFuuroCount = fuuroList.sumOf { fuuro -> fuuro.tiles.count { t -> t.mahjong4jTile == it.mahjong4jTile } }
             val allTileHere = (tileInHandsCount + tileInFuuroCount) == 4
@@ -401,7 +403,7 @@ abstract class MahjongPlayerBase {
         machi: List<Tile> = this.machiTiles.map { it.mahjong4jTile },
     ): Boolean {
         val discardedTilesList = discardedTiles.map { it.mahjong4jTile }
-        if (tile in discardedTilesList) return true
+        if (machi.any { it in discardedTilesList }) return true
 
         // 同巡振听: 从自己最后一次打牌到现在，是否有听牌被打出
         if (lastDiscardAllIndex >= 0 && lastDiscardAllIndex < discards.size) {
@@ -420,19 +422,17 @@ abstract class MahjongPlayerBase {
     }
 
     fun isIppatsu(players: List<MahjongPlayerBase>, discards: List<MahjongTile>): Boolean {
-        if (riichi && riichiSengenTile != null) {
-            val riichiSengenIndex = discards.indexOf(riichiSengenTile!!)
-            if (riichiSengenIndex == -1 || discards.lastIndex - riichiSengenIndex > 4) return false
-            val someoneCalls = discards.slice(riichiSengenIndex..discards.lastIndex).any { tile ->
-                players.any { player ->
-                    player.fuuroList.any { fuuro ->
-                        tile in fuuro.tiles
-                    }
+        if (!(riichi || doubleRiichi) || riichiSengenTile == null) return false
+        if (riichiAllIndex < 0 || riichiAllIndex > discards.lastIndex) return false
+        if (discards.lastIndex - riichiAllIndex > players.size) return false
+        val someoneCalls = discards.slice(riichiAllIndex..discards.lastIndex).any { tile ->
+            players.any { player ->
+                player.fuuroList.any { fuuro ->
+                    tile in fuuro.tiles
                 }
             }
-            return !someoneCalls
         }
-        return false
+        return !someoneCalls
     }
 
     fun isKokushimuso(tile: Tile): Boolean {
@@ -493,11 +493,9 @@ abstract class MahjongPlayerBase {
         var finalNormalYakuList = mutableListOf<NormalYaku>()
         val finalYakumanList = mj4jPlayer.yakumanList.toMutableList()
         val finalDoubleYakumanList = mutableListOf<DoubleYakuman>()
+        if (!rule.localYaku && Yakuman.RENHO in finalYakumanList) finalYakumanList -= Yakuman.RENHO
         
         if (finalYakumanList.isNotEmpty()) {
-            if (!rule.localYaku) {
-                if (Yakuman.RENHO in finalYakumanList) finalYakumanList -= Yakuman.RENHO
-            }
             val handsWithoutWinningTile = hands.toMutableList().also { if (isWinningTileInHands) it -= winningTile }
             val machiBeforeWin = calculateMachi(handsWithoutWinningTile, fuuroList)
             when {
