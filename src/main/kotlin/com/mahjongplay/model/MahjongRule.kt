@@ -4,21 +4,9 @@ import com.mahjongplay.util.TextFormatting
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+import com.mahjongplay.util.MJColor
 
-/**
- * 麻將的規則
- *
- * @param length 遊戲局數, 預設為半莊
- * @param thinkingTime 思考時間, 預設為 5 + 20
- * @param startingPoints 起始點數, 預設 25000
- * @param minPointsToWin 1位必要點數, 預設 30000
- * @param minimumHan 翻縛, 預設 ONE
- * @param spectate 旁觀 (遊戲外玩家能否看到手牌)
- * @param redFive 赤寶牌數量
- * @param openTanyao 食斷
- * @param localYaku 古役
- */
 @Serializable
 data class MahjongRule(
     var length: GameLength = GameLength.TWO_WIND,
@@ -36,28 +24,28 @@ data class MahjongRule(
     fun toJsonString(): String = Json.encodeToString(serializer(), this)
 
     fun toComponents(): List<Component> {
-        val enable = Component.text("開啟").color(NamedTextColor.GREEN)
-        val disable = Component.text("關閉").color(NamedTextColor.GREEN)
+        val enable = Component.text("開啟").color(MJColor.GREEN)
+        val disable = Component.text("關閉").color(MJColor.GREEN)
         return listOf(
-            Component.text("§c§l規則"),
-            Component.text(" - 局數：").color(NamedTextColor.YELLOW)
-                .append(length.toText().color(NamedTextColor.GREEN)),
-            Component.text(" - 思考時間：").color(NamedTextColor.YELLOW)
-                .append(Component.text("${thinkingTime.base}").color(NamedTextColor.AQUA))
-                .append(Component.text(" + ").color(NamedTextColor.RED))
-                .append(Component.text("${thinkingTime.extra}").color(NamedTextColor.AQUA))
-                .append(Component.text(" 秒").color(NamedTextColor.GREEN)),
-            Component.text(" - 起始點數：").color(NamedTextColor.YELLOW)
-                .append(Component.text("$startingPoints").color(NamedTextColor.GREEN)),
-            Component.text(" - 1位必要點數：").color(NamedTextColor.YELLOW)
-                .append(Component.text("$minPointsToWin").color(NamedTextColor.GREEN)),
-            Component.text(" - 翻縛：").color(NamedTextColor.YELLOW)
-                .append(Component.text("${minimumHan.han}").color(NamedTextColor.GREEN)),
-            Component.text(" - 旁觀：").color(NamedTextColor.YELLOW)
+            Component.text("規則").color(MJColor.RED).decorate(TextDecoration.BOLD),
+            Component.text(" - 局數：").color(MJColor.YELLOW)
+                .append(length.toText().color(MJColor.GREEN)),
+            Component.text(" - 思考時間：").color(MJColor.YELLOW)
+                .append(Component.text("${thinkingTime.base}").color(MJColor.AQUA))
+                .append(Component.text(" + ").color(MJColor.RED))
+                .append(Component.text("${thinkingTime.extra}").color(MJColor.AQUA))
+                .append(Component.text(" 秒").color(MJColor.GREEN)),
+            Component.text(" - 起始點數：").color(MJColor.YELLOW)
+                .append(Component.text("$startingPoints").color(MJColor.GREEN)),
+            Component.text(" - 1位必要點數：").color(MJColor.YELLOW)
+                .append(Component.text("$minPointsToWin").color(MJColor.GREEN)),
+            Component.text(" - 翻縛：").color(MJColor.YELLOW)
+                .append(Component.text("${minimumHan.han}").color(MJColor.GREEN)),
+            Component.text(" - 旁觀：").color(MJColor.YELLOW)
                 .append(if (spectate) enable else disable),
-            Component.text(" - 赤寶牌：").color(NamedTextColor.YELLOW)
-                .append(Component.text("${redFive.quantity}").color(NamedTextColor.GREEN)),
-            Component.text(" - 食斷：").color(NamedTextColor.YELLOW)
+            Component.text(" - 赤寶牌：").color(MJColor.YELLOW)
+                .append(Component.text("${redFive.quantity}").color(MJColor.GREEN)),
+            Component.text(" - 食斷：").color(MJColor.YELLOW)
                 .append(if (openTanyao) enable else disable)
         )
     }
@@ -68,9 +56,6 @@ data class MahjongRule(
         const val MIN_POINTS = 100
     }
 
-    /**
-     * 麻將遊戲長度
-     */
     enum class GameLength(
         private val startingWind: Wind,
         val rounds: Int,
@@ -96,9 +81,6 @@ data class MahjongRule(
         override fun toText(): Component = Component.text(displayText)
     }
 
-    /**
-     * 翻縛 (最小翻數限制)
-     */
     enum class MinimumHan(val han: Int) : TextFormatting {
         ONE(1),
         TWO(2),
@@ -108,9 +90,6 @@ data class MahjongRule(
         override fun toText(): Component = Component.text(han.toString())
     }
 
-    /**
-     * 思考時間
-     */
     enum class ThinkingTime(
         val base: Int,
         val extra: Int
@@ -124,9 +103,6 @@ data class MahjongRule(
         override fun toText(): Component = Component.text("$base + $extra s")
     }
 
-    /**
-     * 赤寶牌
-     */
     enum class RedFive(val quantity: Int) : TextFormatting {
         NONE(0),
         THREE(3),

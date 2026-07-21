@@ -4,17 +4,42 @@ import com.mahjongplay.game.GameStatus
 import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.model.MahjongGameBehavior
 import com.mahjongplay.game.MahjongPlayer
+import com.mahjongplay.table.MahjongPanel
 import com.mahjongplay.table.MahjongTableManager
 import com.mahjongplay.util.msg
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
+import org.bukkit.Location
+import org.bukkit.Material
 import org.bukkit.entity.Interaction
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
+import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerInteractEntityEvent
+import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.inventory.EquipmentSlot
 
 class EntityInteractionListener(
     private val gameManager: MahjongTableManager
 ) : Listener {
+
+    @EventHandler(ignoreCancelled = true)
+    fun onWandClick(event: PlayerInteractEvent) {
+        if (event.action != Action.LEFT_CLICK_BLOCK || event.hand != EquipmentSlot.HAND) return
+        val item = event.item ?: return
+        if (item.type != Material.PAPER) return
+        val meta = item.itemMeta ?: return
+        if (!meta.hasCustomModelData() || meta.customModelData != MahjongPanel.WAND_MODEL_DATA) return
+        val block = event.clickedBlock ?: return
+
+        event.isCancelled = true
+        val player = event.player
+        if (!player.hasPermission("mahjongplay.command.create")) {
+            player.msg("你沒有權限建立麻將桌", MJColor.RED)
+            return
+        }
+        val center = Location(block.world, block.x + 0.5, (block.y + 1).toDouble(), block.z + 0.5)
+        MahjongPanel.sendModePrompt(gameManager, player, center)
+    }
 
     @EventHandler
     fun onInteractEntity(event: PlayerInteractEntityEvent) {
@@ -28,25 +53,25 @@ class EntityInteractionListener(
         if (joinSession != null) {
             event.isCancelled = true
             if (joinSession.game.status != GameStatus.WAITING) {
-                player.msg("遊戲正在進行中", NamedTextColor.RED)
+                player.msg("遊戲正在進行中", MJColor.RED)
                 return
             }
 
             val existingSession = gameManager.getSessionForPlayer(playerUUID)
             if (existingSession != null && existingSession.tableId == joinSession.tableId) {
                 gameManager.leaveTable(playerUUID)
-                player.msg("已退出麻將桌", NamedTextColor.YELLOW)
+                player.msg("已退出麻將桌", MJColor.YELLOW)
                 return
             }
 
             if (existingSession != null) {
-                player.msg("你已經在另一個麻將桌中了", NamedTextColor.RED)
+                player.msg("你已經在另一個麻將桌中了", MJColor.RED)
                 return
             }
             if (gameManager.joinTable(joinSession.tableId, playerUUID, player.name)) {
-                player.msg("已加入麻將桌！", NamedTextColor.GREEN)
+                player.msg("已加入麻將桌！", MJColor.GREEN)
             } else {
-                player.msg("無法加入（桌子已滿）", NamedTextColor.RED)
+                player.msg("無法加入（桌子已滿）", MJColor.RED)
             }
             return
         }
@@ -58,13 +83,13 @@ class EntityInteractionListener(
 
             val mjPlayer = readySession.game.players.find { it.uuid == playerUUID }
             if (mjPlayer == null) {
-                player.msg("你不在這個麻將桌中", NamedTextColor.RED)
+                player.msg("你不在這個麻將桌中", MJColor.RED)
                 return
             }
             val newReady = !mjPlayer.ready
             readySession.game.readyOrNot(playerUUID, newReady)
             gameManager.updateTableDisplay(readySession)
-            player.msg(if (newReady) "已準備 ✓" else "取消準備 ✗", if (newReady) NamedTextColor.GREEN else NamedTextColor.YELLOW)
+            player.msg(if (newReady) "已準備 ✓" else "取消準備 ✗", if (newReady) MJColor.GREEN else MJColor.YELLOW)
             return
         }
 
@@ -73,19 +98,14 @@ class EntityInteractionListener(
             event.isCancelled = true
             if (startSession.game.status != GameStatus.WAITING) return
 
-            val mjPlayer = startSession.game.players.find { it.uuid == playerUUID }
-            if (mjPlayer == null) {
-                player.msg("你不在這個麻將桌中", NamedTextColor.RED)
-                return
-            }
-            if (!mjPlayer.ready) {
-                player.msg("請先準備", NamedTextColor.RED)
+            if (!gameManager.canManage(startSession, player)) {
+                player.msg("只有牌桌擁有者能開始遊戲", MJColor.RED)
                 return
             }
 
             val error = gameManager.startGame(startSession)
             if (error != null) {
-                player.msg(error, NamedTextColor.RED)
+                player.msg(error, MJColor.RED)
             }
             return
         }

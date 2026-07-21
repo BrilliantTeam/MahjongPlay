@@ -9,10 +9,9 @@ import com.mahjongplay.game.*
 import com.mahjongplay.model.*
 import com.mahjongplay.util.ScheduleUtil
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.World
@@ -60,13 +59,12 @@ class BoardRenderer(
     private val standingTileY: Double get() = surfaceY + HEIGHT / 2.0
     private val flatTileY: Double get() = surfaceY + DEPTH / 2.0
 
-    // Face points toward center so player behind the tile sees it
     private fun physicalSeatIndex(seatIndex: Int): Int {
         if (game.rule.playerCount == 3) {
             return when (seatIndex) {
-                0 -> 0  // East  (right, +X)
-                1 -> 2  // West  (left, -X)  — counter-clockwise from East
-                2 -> 3  // South (bottom, +Z) — counter-clockwise from West
+                0 -> 0
+                1 -> 2
+                2 -> 3
                 else -> seatIndex
             }
         }
@@ -74,10 +72,10 @@ class BoardRenderer(
     }
 
     private fun seatYaw(seatIndex: Int): Float = when (physicalSeatIndex(seatIndex)) {
-        0 -> 90f    // East: face toward -X (center)
-        3 -> 0f     // South: face toward -Z (center)
-        2 -> -90f   // West: face toward +X (center)
-        else -> 180f // North: face toward +Z (center)
+        0 -> 90f
+        3 -> 0f
+        2 -> -90f
+        else -> 180f
     }
 
     private fun seatDirection(seatIndex: Int): DoubleArray = when (physicalSeatIndex(seatIndex)) {
@@ -87,12 +85,11 @@ class BoardRenderer(
         else -> doubleArrayOf(0.0, -1.0)
     }
 
-    // Left-to-right direction from each player's perspective
     private fun seatPerpendicular(seatIndex: Int): DoubleArray = when (physicalSeatIndex(seatIndex)) {
-        0 -> doubleArrayOf(0.0, 1.0)    // East: +Z to -Z (south to north)
-        3 -> doubleArrayOf(-1.0, 0.0)   // South: -X to +X (west to east)
-        2 -> doubleArrayOf(0.0, -1.0)   // West: -Z to +Z (north to south)
-        else -> doubleArrayOf(1.0, 0.0)  // North: +X to -X (east to west)
+        0 -> doubleArrayOf(0.0, 1.0)
+        3 -> doubleArrayOf(-1.0, 0.0)
+        2 -> doubleArrayOf(0.0, -1.0)
+        else -> doubleArrayOf(1.0, 0.0)
     }
 
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
@@ -241,8 +238,8 @@ class BoardRenderer(
         if (machi.isNotEmpty()) {
             val machiStr = machi.joinToString(",") { it.displayName }
             val mjPlayer = player as? com.mahjongplay.game.MahjongPlayer
-            mjPlayer?.riichiActionBarOverride = Component.text("出牌：${discard.displayName}", NamedTextColor.AQUA)
-                .append(Component.text(" ｜ 聽：$machiStr", NamedTextColor.YELLOW))
+            mjPlayer?.riichiActionBarOverride = Component.text("出牌：${discard.displayName}", MJColor.AQUA)
+                .append(Component.text(" ｜ 聽：$machiStr", MJColor.YELLOW))
         } else {
             clearTenpaiPreview(playerUUID)
         }
@@ -255,18 +252,29 @@ class BoardRenderer(
         }
     }
 
+    @Suppress("DEPRECATION")
+    private fun glow(entity: org.bukkit.entity.Entity?, viewer: Player?, riichi: Boolean = false) {
+        if (entity == null || viewer == null) return
+        val color = if (riichi) org.bukkit.ChatColor.RED else org.bukkit.ChatColor.YELLOW
+        try {
+            MahjongPlayPlugin.instance.glowingEntities.setGlowing(entity, viewer, color)
+        } catch (_: ReflectiveOperationException) {}
+    }
+
+    private fun unglow(entity: org.bukkit.entity.Entity?, viewer: Player?) {
+        if (entity == null || viewer == null) return
+        try {
+            MahjongPlayPlugin.instance.glowingEntities.unsetGlowing(entity, viewer)
+        } catch (_: ReflectiveOperationException) {}
+    }
+
     private fun highlightMatchingDiscards(playerUUID: String, tile: MahjongTile) {
         unhighlightDiscards(playerUUID)
         val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID)) ?: return
-        val glowing = MahjongPlayPlugin.instance.glowingEntities
         val highlighted = highlightedDiscards.getOrPut(playerUUID) { mutableListOf() }
         discardDisplays.values.flatten().forEach { display ->
             if (display.tile == tile) {
-                display.entity?.let { e ->
-                    try {
-                        glowing.setGlowing(e, bukkitPlayer, ChatColor.YELLOW)
-                    } catch (_: ReflectiveOperationException) {}
-                }
+                glow(display.entity, bukkitPlayer)
                 highlighted += display
             }
         }
@@ -274,16 +282,7 @@ class BoardRenderer(
 
     private fun unhighlightDiscards(playerUUID: String) {
         val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
-        val glowing = MahjongPlayPlugin.instance.glowingEntities
-        highlightedDiscards[playerUUID]?.forEach { display ->
-            display.entity?.let { e ->
-                if (bukkitPlayer != null) {
-                    try {
-                        glowing.unsetGlowing(e, bukkitPlayer)
-                    } catch (_: ReflectiveOperationException) {}
-                }
-            }
-        }
+        highlightedDiscards[playerUUID]?.forEach { display -> unglow(display.entity, bukkitPlayer) }
         highlightedDiscards.remove(playerUUID)
     }
 
@@ -295,25 +294,18 @@ class BoardRenderer(
         selectedTileIndices.remove(playerUUID)
         unhighlightDiscards(playerUUID)
 
-        val cancelOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "取消", "cancel_riichi", NamedTextColor.RED)
+        val cancelOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "取消", "cancel_riichi", MJColor.RED)
         spawnActionButtons(playerUUID, seatIndex, listOf(cancelOption))
 
         val eligibleTiles = tilePairs.map { it.first }
         val ownerDisplays = handOwnerDisplays[playerUUID] ?: return
         val hands = player.hands
         val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
-        val glowing = MahjongPlayPlugin.instance.glowingEntities
 
         ownerDisplays.forEachIndexed { index, display ->
             val tile = hands.getOrNull(index) ?: return@forEachIndexed
             if (tile in eligibleTiles) {
-                display.entity?.let { e ->
-                    if (bukkitPlayer != null) {
-                        try {
-                            glowing.setGlowing(e, bukkitPlayer, ChatColor.RED)
-                        } catch (_: ReflectiveOperationException) {}
-                    }
-                }
+                glow(display.entity, bukkitPlayer, riichi = true)
             }
         }
     }
@@ -324,16 +316,7 @@ class BoardRenderer(
 
         val ownerDisplays = handOwnerDisplays[playerUUID] ?: return
         val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
-        val glowing = MahjongPlayPlugin.instance.glowingEntities
-        ownerDisplays.forEach { display ->
-            display.entity?.let { e ->
-                if (bukkitPlayer != null) {
-                    try {
-                        glowing.unsetGlowing(e, bukkitPlayer)
-                    } catch (_: ReflectiveOperationException) {}
-                }
-            }
-        }
+        ownerDisplays.forEach { display -> unglow(display.entity, bukkitPlayer) }
 
         val mjPlayer = game.seat.find { it.uuid == playerUUID } as? com.mahjongplay.game.MahjongPlayer
         mjPlayer?.riichiActionBarOverride = null
@@ -359,17 +342,10 @@ class BoardRenderer(
         val machi = tilePairs.find { it.first == tile }?.second ?: emptyList()
         unhighlightDiscards(playerUUID)
         val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
-        val glowing = MahjongPlayPlugin.instance.glowingEntities
         val highlighted = highlightedDiscards.getOrPut(playerUUID) { mutableListOf() }
         discardDisplays.values.flatten().forEach { display ->
             if (display.tile.mahjong4jTile in machi.map { it.mahjong4jTile }) {
-                display.entity?.let { e ->
-                    if (bukkitPlayer != null) {
-                        try {
-                            glowing.setGlowing(e, bukkitPlayer, ChatColor.YELLOW)
-                        } catch (_: ReflectiveOperationException) {}
-                    }
-                }
+                glow(display.entity, bukkitPlayer)
                 highlighted += display
             }
         }
@@ -377,8 +353,8 @@ class BoardRenderer(
         val mjPlayer = game.seat.find { it.uuid == playerUUID } as? com.mahjongplay.game.MahjongPlayer
         if (mjPlayer != null) {
             val machiStr = machi.joinToString(",") { it.displayName }
-            mjPlayer.riichiActionBarOverride = Component.text("立直出牌：${tile.displayName}", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text(" ｜ 聽：$machiStr", NamedTextColor.YELLOW))
+            mjPlayer.riichiActionBarOverride = Component.text("立直出牌：${tile.displayName}", MJColor.LIGHT_PURPLE)
+                .append(Component.text(" ｜ 聽：$machiStr", MJColor.YELLOW))
         }
 
         return false
@@ -386,7 +362,6 @@ class BoardRenderer(
 
     private fun raiseTileAt(playerUUID: String, index: Int) {
         teleportTileY(handOwnerDisplays[playerUUID]?.getOrNull(index), RAISE_OFFSET)
-        // 不抬起牌背 (handDisplays)，避免其他玩家看到哪張牌被選中
     }
 
     private fun lowerTileAt(playerUUID: String, index: Int) {
@@ -473,7 +448,7 @@ class BoardRenderer(
         val seatIndex = game.seat.indexOf(player)
         if (seatIndex < 0) return
 
-        val withSkip = subOptions + ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", NamedTextColor.GRAY)
+        val withSkip = subOptions + ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", MJColor.GRAY)
         spawnActionButtons(playerUUID, seatIndex, withSkip)
     }
 
@@ -733,7 +708,7 @@ class BoardRenderer(
         textDisplay.isPersistent = false
         val label = if (player.doubleRiichi) "W立直" else "立直"
         textDisplay.text(
-            Component.text(label, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
+            Component.text(label, MJColor.LIGHT_PURPLE, TextDecoration.BOLD)
         )
         textDisplay.billboard = Display.Billboard.FIXED
         textDisplay.backgroundColor = Color.fromARGB(0, 0, 0, 0)
@@ -769,8 +744,8 @@ class BoardRenderer(
             val textDisplay = world.spawnEntity(loc, EntityType.TEXT_DISPLAY) as TextDisplay
             textDisplay.isPersistent = false
             textDisplay.text(
-                Component.text("\uD83E\uDD16 ", NamedTextColor.GRAY)
-                    .append(Component.text(player.displayName, NamedTextColor.GOLD))
+                Component.text("\uD83E\uDD16 ", MJColor.GRAY)
+                    .append(Component.text(player.displayName, MJColor.GOLD))
             )
             textDisplay.billboard = Display.Billboard.CENTER
             textDisplay.backgroundColor = Color.fromARGB(160, 0, 0, 0)

@@ -6,7 +6,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 import com.mahjongplay.util.msg
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
+import net.kyori.adventure.text.format.TextColor
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -20,7 +21,7 @@ data class ActionDisplayOption(
     val behavior: MahjongGameBehavior,
     val label: String,
     val data: String,
-    val color: NamedTextColor = NamedTextColor.WHITE,
+    val color: TextColor = MJColor.WHITE,
     val subOptions: List<ActionDisplayOption>? = null
 )
 
@@ -44,9 +45,6 @@ class MahjongPlayer(
     var riichiOriginalOptions: List<ActionDisplayOption> = emptyList()
     var riichiActionBarOverride: net.kyori.adventure.text.Component? = null
 
-    /**
-     * 當前不能打出的牌 (食替禁止), 僅在等待出牌期間有效
-     */
     var discardForbiddenTiles: List<MahjongTile> = emptyList()
         private set
 
@@ -76,14 +74,14 @@ class MahjongPlayer(
         if (behavior == MahjongGameBehavior.DISCARD) {
             val tile = MahjongTile.entries.find { it.code == data.toIntOrNull() }
             if (tile != null && discardForbiddenTiles.any { it.mahjong4jTile == tile.mahjong4jTile }) {
-                bukkitPlayer?.msg("食替禁止：鳴牌後不能立即打出 ${tile.displayName}", NamedTextColor.RED)
+                bukkitPlayer?.msg("食替禁止：鳴牌後不能立即打出 ${tile.displayName}", MJColor.RED)
                 return false
             }
         }
         return pending.deferred.complete(behavior to data)
     }
 
-    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", NamedTextColor.RED)
+    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", MJColor.RED)
 
     override suspend fun askToDiscardTile(
         timeoutTile: MahjongTile,
@@ -116,12 +114,12 @@ class MahjongPlayer(
         target: ClaimTarget,
     ): Pair<MahjongTile, MahjongTile>? {
         val subs = tilePairs.map { (a, b) ->
-            ActionDisplayOption(MahjongGameBehavior.CHII, "${a.displayName}+${b.displayName}", "${a.code},${b.code}", NamedTextColor.GREEN)
+            ActionDisplayOption(MahjongGameBehavior.CHII, "${a.displayName}+${b.displayName}", "${a.code},${b.code}", MJColor.GREEN)
         }
         actionOptions = if (subs.size == 1) {
             listOf(subs[0].copy(label = "吃 ${subs[0].label}"), skipOption)
         } else {
-            listOf(ActionDisplayOption(MahjongGameBehavior.CHII, "吃", "", NamedTextColor.GREEN, subOptions = subs), skipOption)
+            listOf(ActionDisplayOption(MahjongGameBehavior.CHII, "吃", "", MJColor.GREEN, subOptions = subs), skipOption)
         }
         return waitForBehaviorResult(
             behavior = MahjongGameBehavior.CHII
@@ -150,14 +148,14 @@ class MahjongPlayer(
         target: ClaimTarget,
     ): Pair<MahjongTile, MahjongTile>? {
         val chiiSubs = tilePairsForChii.map { (a, b) ->
-            ActionDisplayOption(MahjongGameBehavior.CHII, "${a.displayName}+${b.displayName}", "${a.code},${b.code}", NamedTextColor.GREEN)
+            ActionDisplayOption(MahjongGameBehavior.CHII, "${a.displayName}+${b.displayName}", "${a.code},${b.code}", MJColor.GREEN)
         }
         actionOptions = buildList {
-            add(ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", NamedTextColor.BLUE))
+            add(ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", MJColor.BLUE))
             if (chiiSubs.size == 1) {
                 add(chiiSubs[0].copy(label = "吃 ${chiiSubs[0].label}"))
             } else {
-                add(ActionDisplayOption(MahjongGameBehavior.CHII, "吃", "", NamedTextColor.GREEN, subOptions = chiiSubs))
+                add(ActionDisplayOption(MahjongGameBehavior.CHII, "吃", "", MJColor.GREEN, subOptions = chiiSubs))
             }
             add(skipOption)
         }
@@ -192,7 +190,7 @@ class MahjongPlayer(
         target: ClaimTarget,
     ): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", NamedTextColor.BLUE),
+            ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", MJColor.BLUE),
             skipOption
         )
         return waitForBehaviorResult(
@@ -209,16 +207,16 @@ class MahjongPlayer(
     ): MahjongTile? {
         val kanSubs = buildList {
             canAnkanTiles.forEach { t ->
-                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "暗槓 ${t.displayName}", "${t.code}", NamedTextColor.DARK_AQUA))
+                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "暗槓 ${t.displayName}", "${t.code}", MJColor.DARK_AQUA))
             }
             canKakanTiles.forEach { (t, _) ->
-                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "加槓 ${t.displayName}", "${t.code}", NamedTextColor.AQUA))
+                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "加槓 ${t.displayName}", "${t.code}", MJColor.AQUA))
             }
         }
         actionOptions = if (kanSubs.size == 1) {
             listOf(kanSubs[0], skipOption)
         } else {
-            listOf(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "槓", "", NamedTextColor.DARK_AQUA, subOptions = kanSubs), skipOption)
+            listOf(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "槓", "", MJColor.DARK_AQUA, subOptions = kanSubs), skipOption)
         }
         return waitForBehaviorResult(
             behavior = MahjongGameBehavior.ANKAN_OR_KAKAN
@@ -240,8 +238,8 @@ class MahjongPlayer(
         rule: MahjongRule,
     ): MahjongGameBehavior {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.MINKAN, "明槓", "", NamedTextColor.DARK_AQUA),
-            ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", NamedTextColor.BLUE),
+            ActionDisplayOption(MahjongGameBehavior.MINKAN, "明槓", "", MJColor.DARK_AQUA),
+            ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", MJColor.BLUE),
             skipOption
         )
         return waitForBehaviorResult(
@@ -261,7 +259,7 @@ class MahjongPlayer(
         riichiTilePairs = tilePairsForRiichi
         riichiSelectionMode = false
 
-        val riichiOption = ActionDisplayOption(MahjongGameBehavior.RIICHI, "立直", "enter_mode", NamedTextColor.LIGHT_PURPLE)
+        val riichiOption = ActionDisplayOption(MahjongGameBehavior.RIICHI, "立直", "enter_mode", MJColor.LIGHT_PURPLE)
         actionOptions = listOf(riichiOption, skipOption)
         riichiOriginalOptions = actionOptions
 
@@ -285,7 +283,7 @@ class MahjongPlayer(
 
     override suspend fun askToTsumo(): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.TSUMO, "自摸", "", NamedTextColor.GOLD),
+            ActionDisplayOption(MahjongGameBehavior.TSUMO, "自摸", "", MJColor.GOLD),
             skipOption
         )
         return waitForBehaviorResult(
@@ -297,7 +295,7 @@ class MahjongPlayer(
 
     override suspend fun askToRon(tile: MahjongTile, target: ClaimTarget): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.RON, "榮", "", NamedTextColor.RED),
+            ActionDisplayOption(MahjongGameBehavior.RON, "榮", "", MJColor.RED),
             skipOption
         )
         return waitForBehaviorResult(
@@ -309,7 +307,7 @@ class MahjongPlayer(
 
     override suspend fun askToKyuushuKyuuhai(): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.KYUUSHU_KYUUHAI, "九種九牌", "", NamedTextColor.YELLOW),
+            ActionDisplayOption(MahjongGameBehavior.KYUUSHU_KYUUHAI, "九種九牌", "", MJColor.YELLOW),
             skipOption
         )
         return waitForBehaviorResult(
@@ -321,7 +319,7 @@ class MahjongPlayer(
 
     override suspend fun askToKita(): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.KITA, "拔北", "", NamedTextColor.DARK_GREEN),
+            ActionDisplayOption(MahjongGameBehavior.KITA, "拔北", "", MJColor.DARK_GREEN),
             skipOption
         )
         return waitForBehaviorResult(

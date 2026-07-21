@@ -16,21 +16,18 @@ repositories {
 }
 
 dependencies {
-    // Paper API
     compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
 
-    // MCCoroutine for Bukkit-safe coroutines
+    compileOnly(files("libs/Residence5.1.6.2.jar"))
+
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.20.0")
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.20.0")
 
-    // Kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
-    // Mahjong4j - core rules engine (pure Java)
     implementation("com.github.mahjong4j:mahjong4j:0.3.2")
 
-    // GlowingEntities - per-player entity glow without ProtocolLib
     implementation("fr.skytasul:glowingentities:1.4.10")
 }
 

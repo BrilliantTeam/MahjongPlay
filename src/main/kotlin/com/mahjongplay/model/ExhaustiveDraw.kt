@@ -3,10 +3,6 @@ package com.mahjongplay.model
 import com.mahjongplay.util.TextFormatting
 import net.kyori.adventure.text.Component
 
-/**
- * 流局類型
- * 不包含三家和 (sanchahou)
- */
 enum class ExhaustiveDraw(
     private val displayName: String
 ) : TextFormatting {

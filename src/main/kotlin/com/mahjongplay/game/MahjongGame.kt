@@ -90,7 +90,6 @@ class MahjongGame(
             return allDiscarded.all { it.mahjong4jTile == first } && first.type == TileType.FONPAI
         }
 
-    // --- Lifecycle ---
 
     fun addBot(name: String = "Bot") {
         if (players.size >= playerCount) return
@@ -148,7 +147,6 @@ class MahjongGame(
         seat.clear(); clearStuffs(); round = MahjongRound()
     }
 
-    // --- Internal helpers ---
 
     private fun clearStuffs() {
         players.forEach {
@@ -254,7 +252,6 @@ class MahjongGame(
         if (idx == 2 && num - 3 >= 1) out += tile.previousTile.previousTile.previousTile
     }
 
-    // --- Round loop ---
 
     private suspend fun startRound(clearRiichiSticks: Boolean = true) {
         if (!isPlaying) return
@@ -398,7 +395,6 @@ class MahjongGame(
 
             if (isSuufonRenda) { roundDraw = ExhaustiveDraw.SUUFON_RENDA; break@roundLoop }
 
-            // ron
             val ronList = canRonList(discarded, player)
             if (ronList.isNotEmpty()) {
                 if (ronList.size > 1) {
@@ -423,7 +419,6 @@ class MahjongGame(
                 }
             }
 
-            // minkan/pon
             val mkpList = canMinKanOrPonList(discarded, player, si)
             var someoneKan = false
             if (mkpList.isNotEmpty()) {
@@ -522,7 +517,6 @@ class MahjongGame(
         }
     }
 
-    // --- Win/draw logic ---
 
     private fun canRonList(tile: MahjongTile, discardedPlayer: MahjongPlayerBase, isChanKan: Boolean = false): List<MahjongPlayerBase> =
         players.filter {

@@ -8,7 +8,7 @@ import com.mahjongplay.model.MahjongRound
 import com.mahjongplay.model.MahjongTile
 import com.mahjongplay.util.actionBarMsg
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -33,12 +33,12 @@ object ActionBarHUD {
             val seatWind = seatWindOf(game, mjPlayer)
             val doraStr = game.doraIndicators.joinToString(",") { it.doraFromIndicator(game.rule.isSanma).displayName }
 
-            var bar = Component.text("${round.displayName()}", NamedTextColor.GOLD)
-                .append(Component.text("｜本場${round.honba}", NamedTextColor.YELLOW))
-                .append(Component.text("｜$seatWind", NamedTextColor.AQUA))
-                .append(Component.text("｜牌山$wallSize", NamedTextColor.GREEN))
-                .append(Component.text("｜${mjPlayer.points}點", NamedTextColor.WHITE))
-                .append(Component.text("｜寶牌：$doraStr", NamedTextColor.RED))
+            var bar = Component.text("${round.displayName()}", MJColor.GOLD)
+                .append(Component.text("｜本場${round.honba}", MJColor.YELLOW))
+                .append(Component.text("｜$seatWind", MJColor.AQUA))
+                .append(Component.text("｜牌山$wallSize", MJColor.GREEN))
+                .append(Component.text("｜${mjPlayer.points}點", MJColor.WHITE))
+                .append(Component.text("｜寶牌：$doraStr", MJColor.RED))
 
             val previewMachi = mjPlayer.previewMachiTiles
             if (previewMachi.isNotEmpty()) {
@@ -46,7 +46,7 @@ object ActionBarHUD {
                     .distinctBy { it.mahjong4jTile }
                     .filterNot { it.isRed }
                     .joinToString(",") { it.displayName }
-                bar = bar.append(Component.text("｜聽：$machiStr", NamedTextColor.LIGHT_PURPLE))
+                bar = bar.append(Component.text("｜聽：$machiStr", MJColor.LIGHT_PURPLE))
             }
 
             player.sendActionBar(bar)

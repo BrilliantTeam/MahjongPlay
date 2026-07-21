@@ -3,10 +3,6 @@ package com.mahjongplay.model
 import com.mahjongplay.util.TextFormatting
 import net.kyori.adventure.text.Component
 
-/**
- * 麻將遊戲行為
- * 用於伺服端與客戶端之間的通信 (在 Paper 版中用於聊天欄點擊交互)
- */
 enum class MahjongGameBehavior(
     private val displayName: String
 ) : TextFormatting {

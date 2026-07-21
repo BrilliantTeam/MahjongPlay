@@ -7,7 +7,7 @@ import com.mahjongplay.util.CancelTask
 import com.mahjongplay.util.ScheduleUtil
 import net.kyori.adventure.bossbar.BossBar
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import org.bukkit.Bukkit
 import java.util.UUID
 
@@ -55,7 +55,6 @@ class TurnTimerBar(private val game: MahjongGame) {
         b.color(BossBar.Color.GREEN)
         b.name(buildTitle(totalSeconds))
 
-        // BossBar 不碰世界狀態, 放 global
         timerTask = ScheduleUtil.globalTimer(0L, 2L) {
             val elapsed = System.currentTimeMillis() - startTimeMs
             val remaining = (durationMs - elapsed).coerceAtLeast(0)
@@ -91,9 +90,9 @@ class TurnTimerBar(private val game: MahjongGame) {
         else List(pc) { game.seat[(game.round.round + it) % pc] }
 
         val round = game.round
-        var title = Component.text("${round.displayName()} ", NamedTextColor.GOLD)
-            .append(Component.text("牌山${game.wallSize} ", NamedTextColor.GREEN))
-            .append(Component.text("｜ ", NamedTextColor.DARK_GRAY))
+        var title = Component.text("${round.displayName()} ", MJColor.GOLD)
+            .append(Component.text("牌山${game.wallSize} ", MJColor.GREEN))
+            .append(Component.text("｜ ", MJColor.DARK_GRAY))
 
         seatOrder.forEachIndexed { idx, player ->
             val wind = windNames.getOrElse(idx) { "?" }
@@ -101,21 +100,21 @@ class TurnTimerBar(private val game: MahjongGame) {
             val name = player.displayName
 
             if (isActive) {
-                val secColor = if (remainSec <= 5) NamedTextColor.RED else NamedTextColor.WHITE
+                val secColor = if (remainSec <= 5) MJColor.RED else MJColor.WHITE
                 title = title
-                    .append(Component.text("$wind（", NamedTextColor.YELLOW))
-                    .append(Component.text(name, NamedTextColor.AQUA))
-                    .append(Component.text("） ", NamedTextColor.YELLOW))
+                    .append(Component.text("$wind（", MJColor.YELLOW))
+                    .append(Component.text(name, MJColor.AQUA))
+                    .append(Component.text("） ", MJColor.YELLOW))
                     .append(Component.text("${remainSec}s", secColor))
             } else {
                 title = title
-                    .append(Component.text("$wind（", NamedTextColor.GRAY))
-                    .append(Component.text(name, NamedTextColor.GRAY))
-                    .append(Component.text("）", NamedTextColor.GRAY))
+                    .append(Component.text("$wind（", MJColor.GRAY))
+                    .append(Component.text(name, MJColor.GRAY))
+                    .append(Component.text("）", MJColor.GRAY))
             }
 
             if (idx < seatOrder.size - 1) {
-                title = title.append(Component.text(" ｜ ", NamedTextColor.DARK_GRAY))
+                title = title.append(Component.text(" ｜ ", MJColor.DARK_GRAY))
             }
         }
 

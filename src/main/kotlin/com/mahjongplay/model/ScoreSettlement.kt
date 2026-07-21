@@ -3,19 +3,11 @@ package com.mahjongplay.model
 import kotlinx.serialization.Serializable
 import net.kyori.adventure.text.Component
 
-/**
- * 結算遊戲分數用, 用來顯示結算分數畫面。
- *
- * 分數結算畫面總共有 8 種情況：流局(5種)、胡、自摸、遊戲結束
- */
 @Serializable
 data class ScoreSettlement(
     val titleTranslateKey: String,
     val scoreList: List<ScoreItem>
 ) {
-    /**
-     * 照得分後總分排名由高至低排列
-     */
     val rankedScoreList: List<RankedScoreItem> = buildList {
         val origin = scoreList.sortedWith(originalScoreComparator).reversed()
         val after = scoreList.sortedWith(totalScoreComparator).reversed()

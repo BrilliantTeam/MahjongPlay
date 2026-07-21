@@ -4,22 +4,6 @@ import kotlinx.serialization.Serializable
 import org.mahjong4j.yaku.normals.NormalYaku
 import org.mahjong4j.yaku.yakuman.Yakuman
 
-/**
- * 役結算, 用於顯示和牌結果
- *
- * @param displayName 胡牌玩家的 displayName
- * @param uuid 胡牌玩家的 stringUUID
- * @param nagashiMangan 流局滿貫專用
- * @param redFiveCount 紅寶牌數量
- * @param riichi 立直
- * @param winningTile 胡牌的那張牌
- * @param hands 手牌
- * @param fuuroList 副露列表 (是否為暗槓, 牌列表)
- * @param doraIndicators 寶牌指示牌
- * @param uraDoraIndicators 裏寶牌指示牌
- * @param score 顯示用分數
- * @param botCode 機器人外觀碼
- */
 @Serializable
 data class YakuSettlement(
     val displayName: String,
@@ -43,9 +27,6 @@ data class YakuSettlement(
     val score: Int,
 ) {
     companion object {
-        /**
-         * 流局滿貫
-         */
         fun nagashiMangan(
             playerDisplayName: String,
             playerUUID: String,
@@ -76,9 +57,6 @@ data class YakuSettlement(
             score = if (isDealer) 12000 else 8000
         )
 
-        /**
-         * 無役, 判斷是否聽牌用
-         */
         val NO_YAKU = YakuSettlement(
             displayName = "",
             uuid = "",

@@ -1,6 +1,5 @@
 package com.mahjongplay.interaction
 
-import com.mahjongplay.MahjongPlayPlugin
 import com.mahjongplay.display.BoardRenderer
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
@@ -10,7 +9,7 @@ import com.mahjongplay.util.MESSAGE_PREFIX
 import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.YakuNameChinese
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import net.kyori.adventure.title.Title
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -34,7 +33,7 @@ class PaperGameBridge(
             it.pendingActionListener = this
         }
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
-        broadcast(MESSAGE_PREFIX.append(Component.text("遊戲開始！", NamedTextColor.GOLD)))
+        broadcast(MESSAGE_PREFIX.append(Component.text("遊戲開始！", MJColor.GOLD)))
         startHudUpdates()
         turnTimerBar.cleanup()
         turnTimerBar.show()
@@ -43,8 +42,8 @@ class PaperGameBridge(
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
         renderer.onRoundStart(game, round)
         val title = Title.title(
-            Component.text(round.displayName(), NamedTextColor.GOLD),
-            Component.text("本場${round.honba}", NamedTextColor.YELLOW),
+            Component.text(round.displayName(), MJColor.GOLD),
+            Component.text("本場${round.honba}", MJColor.YELLOW),
             Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500))
         )
         forEachPlayer { it.showTitle(title) }
@@ -74,32 +73,32 @@ class PaperGameBridge(
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onChii(player, claimedTile, from)
         showEventTitle(
-            Component.text("吃！", NamedTextColor.GREEN),
-            Component.text(player.displayName, NamedTextColor.AQUA)
+            Component.text("吃！", MJColor.GREEN),
+            Component.text(player.displayName, MJColor.AQUA)
         )
     }
 
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onPon(player, claimedTile, from)
         showEventTitle(
-            Component.text("碰！", NamedTextColor.BLUE),
-            Component.text(player.displayName, NamedTextColor.AQUA)
+            Component.text("碰！", MJColor.BLUE),
+            Component.text(player.displayName, MJColor.AQUA)
         )
     }
 
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
         renderer.onKan(player, tile, kanType, from)
         showEventTitle(
-            Component.text("槓！", NamedTextColor.DARK_AQUA),
-            Component.text(player.displayName, NamedTextColor.AQUA)
+            Component.text("槓！", MJColor.DARK_AQUA),
+            Component.text(player.displayName, MJColor.AQUA)
         )
     }
 
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
         renderer.onRiichi(player, tile)
         showEventTitle(
-            Component.text("立直！", NamedTextColor.LIGHT_PURPLE),
-            Component.text(player.displayName, NamedTextColor.AQUA)
+            Component.text("立直！", MJColor.LIGHT_PURPLE),
+            Component.text(player.displayName, MJColor.AQUA)
         )
     }
 
@@ -108,8 +107,8 @@ class PaperGameBridge(
             renderer.revealHands(player)
         })
         showEventTitle(
-            Component.text("自摸！", NamedTextColor.GOLD),
-            Component.text(player.displayName, NamedTextColor.AQUA)
+            Component.text("自摸！", MJColor.GOLD),
+            Component.text(player.displayName, MJColor.AQUA)
         )
         sendYakuSummary(settlement)
     }
@@ -120,8 +119,8 @@ class PaperGameBridge(
         })
         val names = winners.joinToString(", ") { it.displayName }
         showEventTitle(
-            Component.text("榮和！", NamedTextColor.RED),
-            Component.text(names, NamedTextColor.AQUA)
+            Component.text("榮和！", MJColor.RED),
+            Component.text(names, MJColor.AQUA)
         )
         settlements.forEach { sendYakuSummary(it) }
     }
@@ -133,17 +132,17 @@ class PaperGameBridge(
             })
         }
         showEventTitle(
-            draw.toText().color(NamedTextColor.YELLOW),
-            Component.text("流局", NamedTextColor.GRAY)
+            draw.toText().color(MJColor.YELLOW),
+            Component.text("流局", MJColor.GRAY)
         )
     }
 
     override fun onScoreSettlement(settlement: ScoreSettlement) {
         settlement.rankedScoreList.forEachIndexed { index, ranked ->
-            val line = Component.text("  ${index + 1}. ", NamedTextColor.YELLOW)
-                .append(Component.text(ranked.scoreItem.displayName, NamedTextColor.AQUA))
-                .append(Component.text("  ${ranked.scoreTotal}點", NamedTextColor.WHITE))
-                .append(Component.text("（${ranked.scoreChangeText}）", NamedTextColor.GRAY))
+            val line = Component.text("  ${index + 1}. ", MJColor.YELLOW)
+                .append(Component.text(ranked.scoreItem.displayName, MJColor.AQUA))
+                .append(Component.text("  ${ranked.scoreTotal}點", MJColor.WHITE))
+                .append(Component.text("（${ranked.scoreChangeText}）", MJColor.GRAY))
             broadcast(line)
         }
     }
@@ -158,17 +157,13 @@ class PaperGameBridge(
                 it.table.showActionButtons()
                 tableManager.registerJoinInteraction(it)
             }
-            broadcast(MESSAGE_PREFIX.append(Component.text("遊戲結束！", NamedTextColor.GOLD)))
+            broadcast(MESSAGE_PREFIX.append(Component.text("遊戲結束！", MJColor.GOLD)))
             val sorted = scoreList.sortedByDescending { it.scoreOrigin }
             sorted.forEachIndexed { index, item ->
-                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", NamedTextColor.YELLOW))
+                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", MJColor.YELLOW))
             }
         }
-        if (MahjongPlayPlugin.instance.isEnabled) {
-            ScheduleUtil.region(renderer.tableCenter, task)
-        } else {
-            task.run()
-        }
+        ScheduleUtil.region(renderer.tableCenter, task)
     }
 
     private fun sendYakuSummary(settlement: YakuSettlement) {
@@ -206,12 +201,11 @@ class PaperGameBridge(
             if (alias != null) append("  !!$alias!!")
         }
 
-        broadcast(Component.text("  役：${yakuNames.joinToString(", ")}", NamedTextColor.GREEN)
-            .append(Component.text(scoreLine, NamedTextColor.YELLOW)))
+        broadcast(Component.text("  役：${yakuNames.joinToString(", ")}", MJColor.GREEN)
+            .append(Component.text(scoreLine, MJColor.YELLOW)))
     }
 
     private fun startHudUpdates() {
-        // 只送 action bar, 不碰世界狀態, 放 global 即可
         hudTask = ScheduleUtil.globalTimer(0L, 20L) { updateHud() }
     }
 

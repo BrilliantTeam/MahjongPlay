@@ -17,7 +17,6 @@ import org.joml.Quaternionf
 object TileConstants {
     const val SCALE = 0.15f
 
-    // Model element is 12x16x8 pixels → 0.75x1x0.5 blocks, then scaled by SCALE
     const val WIDTH = 0.75f * SCALE
     const val HEIGHT = 1f * SCALE
     const val DEPTH = 0.5f * SCALE

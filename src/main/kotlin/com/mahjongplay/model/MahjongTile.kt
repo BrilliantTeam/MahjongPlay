@@ -2,26 +2,23 @@ package com.mahjongplay.model
 
 import com.mahjongplay.util.TextFormatting
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import org.mahjong4j.tile.Tile
 import org.mahjong4j.tile.TileType
 
-/**
- * 所有麻將牌
- */
 enum class MahjongTile : TextFormatting {
     M1, M2, M3, M4, M5, M6, M7, M8, M9,
     P1, P2, P3, P4, P5, P6, P7, P8, P9,
     S1, S2, S3, S4, S5, S6, S7, S8, S9,
 
-    EAST,   // 東
-    SOUTH,  // 南
-    WEST,   // 西
-    NORTH,  // 北
+    EAST,
+    SOUTH,
+    WEST,
+    NORTH,
 
-    WHITE_DRAGON, // 白
-    GREEN_DRAGON, // 發
-    RED_DRAGON,   // 中
+    WHITE_DRAGON,
+    GREEN_DRAGON,
+    RED_DRAGON,
 
     M5_RED,
     P5_RED,
@@ -29,26 +26,14 @@ enum class MahjongTile : TextFormatting {
 
     UNKNOWN;
 
-    /**
-     * 這張牌的資源包模型路徑
-     */
     val modelPath: String
         get() = "mahjongcraft:mahjong_tile_${name.lowercase()}"
 
-    /**
-     * 是否是赤牌
-     */
     val isRed: Boolean
         get() = this == M5_RED || this == P5_RED || this == S5_RED
 
-    /**
-     * 對應 code 編號 (用來決定牌的外觀), 直接使用 ordinal
-     */
     val code: Int = ordinal
 
-    /**
-     * 對應 mahjong4j 之中的 Tile
-     */
     val mahjong4jTile: Tile
         get() {
             val tileCode = when (code) {
@@ -61,9 +46,6 @@ enum class MahjongTile : TextFormatting {
             return Tile.valueOf(tileCode)
         }
 
-    /**
-     * 這張牌的排列順序, 只有紅寶牌有調整
-     */
     val sortOrder: Int
         get() = when (this) {
             M5_RED -> 4
@@ -72,9 +54,6 @@ enum class MahjongTile : TextFormatting {
             else -> code
         }
 
-    /**
-     * 取得在順序上的下一張牌
-     */
     val nextTile: MahjongTile
         get() {
             with(mahjong4jTile) {
@@ -87,9 +66,6 @@ enum class MahjongTile : TextFormatting {
             }
         }
 
-    /**
-     * 取得在順序上的上一張牌
-     */
     val previousTile: MahjongTile
         get() {
             with(mahjong4jTile) {
@@ -109,7 +85,7 @@ enum class MahjongTile : TextFormatting {
             TileType.SOHZU -> Component.text("${mahjong4jTile.number}索")
             TileType.FONPAI, TileType.SANGEN -> Component.text(
                 when (this) {
-                    EAST, M5_RED -> "東"   // M5_RED won't hit here, but exhaustive
+                    EAST, M5_RED -> "東"
                     SOUTH, P5_RED -> "南"
                     WEST, S5_RED -> "西"
                     NORTH -> "北"
@@ -121,13 +97,10 @@ enum class MahjongTile : TextFormatting {
             )
             else -> Component.text(name)
         }.let {
-            if (isRed) it.color(NamedTextColor.RED) else it
+            if (isRed) it.color(MJColor.RED) else it
         }
     }
 
-    /**
-     * 簡短的中文顯示名
-     */
     val displayName: String
         get() = when (this) {
             M1 -> "一萬"; M2 -> "二萬"; M3 -> "三萬"; M4 -> "四萬"; M5 -> "五萬"

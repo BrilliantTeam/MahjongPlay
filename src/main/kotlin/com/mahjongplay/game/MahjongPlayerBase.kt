@@ -30,7 +30,7 @@ abstract class MahjongPlayerBase {
     open var ready: Boolean = false
     var riichi: Boolean = false
     var doubleRiichi: Boolean = false
-    
+
     var riichiStickCount: Int = 0
 
     var points: Int = 0
@@ -198,7 +198,7 @@ abstract class MahjongPlayerBase {
                 if (count == 4) this += it
             }
             if (!riichi && !doubleRiichi) return@buildSet
-            
+
             forEach {
                 val handsCopy = hands.toMutableList()
                 val anKanTilesInHands = hands.filter { t -> t.mahjong4jTile == it.mahjong4jTile }.toMutableList()
@@ -267,7 +267,7 @@ abstract class MahjongPlayerBase {
         val previous = hands.find { it == tile.previousTile }
         val previousPrevious = hands.find { it == tile.previousTile.previousTile }
         val pairs = mutableListOf<Pair<MahjongTile, MahjongTile>>()
-        
+
         if (mj4jTile.number < 8 && next != null && nextNext != null) pairs += next to nextNext
         if (mj4jTile.number in 2..8 && previous != null && next != null) pairs += previous to next
         if (mj4jTile.number > 2 && previous != null && previousPrevious != null) pairs += previous to previousPrevious
@@ -469,14 +469,6 @@ abstract class MahjongPlayerBase {
         lastTile: Tile,
     ): Boolean = Hands(hands, lastTile, mentsuList).canWin
 
-    /**
-     * 修正 mahjong4j 0.3.2 已驗證的役種誤判:
-     * - 三色同順: 真三色漏判、非三色誤判 (依 comp 重算)
-     * - 三色同刻: 與三色同順相同模式, 一併重算
-     * - 三暗刻: 榮和補完的刻子應視為明刻
-     * - 平和: 邊張待ち (12待3 / 89待7) 被誤判為兩面
-     * - 純全/混全: 雀頭未檢查幺九、兩役錯誤疊加
-     */
     private fun refineYakuStock(
         yakuStock: MutableList<NormalYaku>,
         comp: MentsuComp,
@@ -554,11 +546,10 @@ abstract class MahjongPlayerBase {
         val finalYakumanList = mj4jPlayer.yakumanList.toMutableList()
         val finalDoubleYakumanList = mutableListOf<DoubleYakuman>()
         if (!rule.localYaku && Yakuman.RENHO in finalYakumanList) finalYakumanList -= Yakuman.RENHO
-        // 庫未處理「榮和補完的刻子不算暗刻」: 雙碰榮和時四暗刻不成立
         if (Yakuman.SUANKO in finalYakumanList && !personalSituation.isTsumo &&
             handsIntArray[winningTile.mahjong4jTile.code] == 3
         ) finalYakumanList -= Yakuman.SUANKO
-        
+
         if (finalYakumanList.isNotEmpty()) {
             val handsWithoutWinningTile = hands.toMutableList().also { if (isWinningTileInHands) it -= winningTile }
             val machiBeforeWin = calculateMachi(handsWithoutWinningTile, fuuroList)
@@ -597,7 +588,7 @@ abstract class MahjongPlayerBase {
                     finalComp = comp
                 }
             }
-            
+
             if (finalHan >= rule.minimumHan.han) {
                 val handsComp = mj4jHands.handsComp
                 val isRiichi = NormalYaku.REACH in finalNormalYakuList
@@ -620,7 +611,7 @@ abstract class MahjongPlayerBase {
                 val nukiCount = nukiDoraTiles.size
                 finalHan += nukiCount
             }
-            
+
             finalFu = when {
                 finalNormalYakuList.size == 0 -> 0
                 NormalYaku.PINFU in finalNormalYakuList && NormalYaku.TSUMO in finalNormalYakuList -> 20

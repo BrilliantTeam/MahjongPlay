@@ -4,9 +4,6 @@ import com.mahjongplay.util.TextFormatting
 import net.kyori.adventure.text.Component
 import org.mahjong4j.tile.Tile
 
-/**
- * 風位
- */
 enum class Wind(
     val tile: Tile,
     val displayName: String

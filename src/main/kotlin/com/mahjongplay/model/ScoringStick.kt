@@ -1,8 +1,5 @@
 package com.mahjongplay.model
 
-/**
- * 所有麻將點棒, 按材質順序排
- */
 enum class ScoringStick(
     val point: Int
 ) {

@@ -1,6 +1,5 @@
 package com.mahjongplay.table
 
-import com.mahjongplay.MahjongPlayPlugin
 import com.mahjongplay.display.BoardRenderer
 import com.mahjongplay.game.GameStatus
 import com.mahjongplay.game.MahjongBot
@@ -13,7 +12,7 @@ import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.actionBarMsg
 import com.mahjongplay.util.msg
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
+import com.mahjongplay.util.MJColor
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.configuration.file.YamlConfiguration
@@ -23,6 +22,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 class MahjongTableManager : GameRegistry {
+
+    companion object {
+        const val ADMIN_PERMISSION = "mahjongplay.admin"
+    }
 
     private val tables = ConcurrentHashMap<UUID, MahjongTableSession>()
     private val playerToTable = ConcurrentHashMap<String, UUID>()
@@ -55,7 +58,9 @@ class MahjongTableManager : GameRegistry {
             bridge = bridge,
             center = center,
             table = MahjongTable(center, modeText, playerCount),
-            humanId = humanId
+            humanId = humanId,
+            ownerUUID = creatorUUID,
+            ownerName = creatorName
         )
 
         tables[session.tableId] = session
@@ -149,17 +154,14 @@ class MahjongTableManager : GameRegistry {
         session.table.joinInteraction?.uniqueId?.let { joinInteractionToTable.remove(it) }
         session.table.startInteraction?.uniqueId?.let { startInteractionToTable.remove(it) }
         session.table.readyInteraction?.uniqueId?.let { readyInteractionToTable.remove(it) }
-        // 指令可以銷毀別的 region 的牌桌, 拆實體/方塊要回到那張桌子的 region
-        val teardown = Runnable {
+        ScheduleUtil.region(session.center) {
             session.renderer.clearAllDisplays()
             session.table.destroy()
         }
-        if (MahjongPlayPlugin.instance.isEnabled) ScheduleUtil.region(session.center, teardown) else teardown.run()
         session.game.players.forEach { playerToTable.remove(it.uuid) }
         autoSave()
     }
 
-    // 呼叫端遍布指令/事件/遊戲執行緒, 在這裡統一排進牌桌所屬 region, 呼叫端就不必各自處理
     fun updateTableDisplay(session: MahjongTableSession) {
         ScheduleUtil.region(session.center) {
             val isWaiting = session.game.status == GameStatus.WAITING
@@ -184,14 +186,13 @@ class MahjongTableManager : GameRegistry {
         if (!session.game.players.all { it.ready }) return
 
         countdownRemaining[session.tableId] = 3
-        // 倒數會動到牌桌上的 TextDisplay, 必須排在牌桌所屬的 region
         val cancel = ScheduleUtil.regionTimer(session.center, 0L, 20L) {
             val remaining = countdownRemaining[session.tableId] ?: return@regionTimer
             if (remaining > 0) {
                 session.table.showCountdown(remaining)
                 session.game.players.forEach { mjp ->
                     Bukkit.getPlayer(UUID.fromString(mjp.uuid))?.actionBarMsg(
-                        Component.text("遊戲將在 ${remaining} 秒後開始...", NamedTextColor.GOLD)
+                        Component.text("遊戲將在 ${remaining} 秒後開始...", MJColor.GOLD)
                     )
                 }
                 countdownRemaining[session.tableId] = remaining - 1
@@ -223,19 +224,37 @@ class MahjongTableManager : GameRegistry {
 
     fun getAllSessions(): Collection<MahjongTableSession> = tables.values
 
-    fun getAllHumanIds(): List<String> = tables.values.map { it.humanId }
+    fun canManage(session: MahjongTableSession, player: org.bukkit.entity.Player): Boolean =
+        player.hasPermission(ADMIN_PERMISSION) ||
+            (session.ownerUUID.isNotEmpty() && session.ownerUUID == player.uniqueId.toString())
 
-    fun getSessionByHumanId(humanId: String): MahjongTableSession? =
-        tables.values.find { it.humanId == humanId }
+    fun getManageableSessions(player: org.bukkit.entity.Player): List<MahjongTableSession> =
+        tables.values.filter { canManage(it, player) }
+
+    fun kickSeat(session: MahjongTableSession, index: Int): String? {
+        if (session.game.status != GameStatus.WAITING) return "遊戲進行中無法踢人"
+        val target = session.game.players.getOrNull(index) ?: return "座位 $index 沒有玩家"
+        if (target.isRealPlayer) {
+            leaveTable(target.uuid)
+            Bukkit.getPlayer(UUID.fromString(target.uuid))?.msg("你被踢出了麻將桌", MJColor.RED)
+        } else {
+            session.game.kick(index)
+            cancelCountdown(session.tableId)
+            updateTableDisplay(session)
+        }
+        return null
+    }
 
     fun shutdown() {
         tables.values.forEach { session ->
             if (session.game.status == GameStatus.PLAYING) {
                 session.game.end()
             }
-            session.renderer.clearAllDisplays()
             session.bridge.cleanup()
-            session.table.removeEntities()
+            ScheduleUtil.region(session.center) {
+                session.renderer.clearAllDisplays()
+                session.table.removeEntities()
+            }
             session.game.players.forEach { playerToTable.remove(it.uuid) }
         }
         tables.clear()
@@ -256,7 +275,9 @@ class MahjongTableManager : GameRegistry {
                 "z" to session.center.blockZ,
                 "gameLength" to session.game.rule.length.name,
                 "playerCount" to session.game.rule.playerCount,
-                "startingPoints" to session.game.rule.startingPoints
+                "startingPoints" to session.game.rule.startingPoints,
+                "owner" to session.ownerUUID,
+                "ownerName" to session.ownerName
             )
             if (session.game.status == GameStatus.PLAYING) {
                 map["playingPlayers"] = session.game.realPlayers.map { it.uuid }
@@ -295,8 +316,11 @@ class MahjongTableManager : GameRegistry {
             val playingPlayers = map["playingPlayers"] as? List<String> ?: emptyList()
             playingPlayers.forEach { interruptedPlayers.add(it) }
 
+            val owner = map["owner"] as? String ?: ""
+            val ownerName = map["ownerName"] as? String ?: ""
+
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
-            val session = createTable(center, "", "", gameLength, playerCount, startingPoints)
+            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints)
             ScheduleUtil.region(center) {
                 session.table.spawn()
                 registerJoinInteraction(session)
@@ -312,7 +336,7 @@ class MahjongTableManager : GameRegistry {
     fun notifyIfInterrupted(playerUUID: String, playerBukkit: org.bukkit.entity.Player) {
         if (interruptedPlayers.remove(playerUUID)) {
             ScheduleUtil.globalLater(40L) {
-                playerBukkit.msg("你之前的牌局因服務器重啟而中斷，非常抱歉！", NamedTextColor.YELLOW)
+                playerBukkit.msg("你之前的牌局因服務器重啟而中斷，非常抱歉！", MJColor.YELLOW)
             }
         }
     }
@@ -331,5 +355,7 @@ data class MahjongTableSession(
     val bridge: PaperGameBridge,
     val center: Location,
     val table: MahjongTable,
-    val humanId: String
+    val humanId: String,
+    val ownerUUID: String,
+    val ownerName: String
 )
