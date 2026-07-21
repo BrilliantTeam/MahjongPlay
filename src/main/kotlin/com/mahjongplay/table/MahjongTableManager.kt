@@ -39,7 +39,7 @@ class MahjongTableManager : GameRegistry {
     private var dataFolder: File? = null
     private var loading = false
 
-    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000): MahjongTableSession {
+    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000, removedSeats: Set<Int> = emptySet()): MahjongTableSession {
         val game = MahjongGame(rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
         val renderer = BoardRenderer(game, center)
         val bridge = PaperGameBridge(game, renderer, this)
@@ -57,7 +57,7 @@ class MahjongTableManager : GameRegistry {
             renderer = renderer,
             bridge = bridge,
             center = center,
-            table = MahjongTable(center, modeText, playerCount),
+            table = MahjongTable(center, modeText, playerCount, removedSeats),
             humanId = humanId,
             ownerUUID = creatorUUID,
             ownerName = creatorName
@@ -282,6 +282,9 @@ class MahjongTableManager : GameRegistry {
             if (session.game.status == GameStatus.PLAYING) {
                 map["playingPlayers"] = session.game.realPlayers.map { it.uuid }
             }
+            if (session.table.removedSeats.isNotEmpty()) {
+                map["removedSeats"] = session.table.removedSeats.toList()
+            }
             map
         }
         config.set("tables", tableList)
@@ -319,8 +322,11 @@ class MahjongTableManager : GameRegistry {
             val owner = map["owner"] as? String ?: ""
             val ownerName = map["ownerName"] as? String ?: ""
 
+            val removedSeats = (map["removedSeats"] as? List<*>)
+                ?.mapNotNull { (it as? Number)?.toInt() }?.toSet() ?: emptySet()
+
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
-            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints)
+            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats)
             ScheduleUtil.region(center) {
                 session.table.spawn()
                 registerJoinInteraction(session)
@@ -331,6 +337,14 @@ class MahjongTableManager : GameRegistry {
 
     fun isProtectedBlock(loc: org.bukkit.Location): Boolean {
         return tables.values.any { it.table.isProtectedBlock(loc) }
+    }
+
+    fun breakSeat(loc: Location, player: org.bukkit.entity.Player): Boolean {
+        val session = tables.values.firstOrNull { it.table.seatIndexAt(loc) >= 0 } ?: return false
+        if (!canManage(session, player)) return false
+        session.table.removeSeat(session.table.seatIndexAt(loc))
+        autoSave()
+        return true
     }
 
     fun notifyIfInterrupted(playerUUID: String, playerBukkit: org.bukkit.entity.Player) {

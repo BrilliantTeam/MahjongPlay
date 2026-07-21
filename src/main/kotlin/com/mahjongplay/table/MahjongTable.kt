@@ -12,7 +12,12 @@ import org.bukkit.entity.Interaction
 import org.bukkit.entity.TextDisplay
 import java.util.UUID
 
-class MahjongTable(val center: Location, val gameLengthText: String = "半莊", val playerCount: Int = 4) {
+class MahjongTable(
+    val center: Location,
+    val gameLengthText: String = "半莊",
+    val playerCount: Int = 4,
+    initialRemovedSeats: Set<Int> = emptySet()
+) {
 
     companion object {
         fun seatOffsets(playerCount: Int): List<Pair<Int, Int>> =
@@ -39,6 +44,9 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半莊", 
     }
 
     private val placedBlocks = mutableListOf<Location>()
+
+    val removedSeats = initialRemovedSeats.toMutableSet()
+
     var joinTextDisplay: TextDisplay? = null
         private set
     var joinInteraction: Interaction? = null
@@ -79,15 +87,31 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半莊", 
     }
 
     private fun spawnSeatSlabs() {
-        val world = center.world
-        val cx = center.blockX
-        val cy = center.blockY
-        val cz = center.blockZ
-
-        seatOffsets(playerCount).forEach { (dx, dz) ->
-            val slabLoc = Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble())
+        seatOffsets(playerCount).forEachIndexed { index, (dx, dz) ->
+            if (index in removedSeats) return@forEachIndexed
+            val slabLoc = Location(
+                center.world,
+                (center.blockX + dx).toDouble(),
+                center.blockY.toDouble(),
+                (center.blockZ + dz).toDouble()
+            )
             slabLoc.block.type = Material.OAK_SLAB
             placedBlocks += slabLoc
+        }
+    }
+
+    fun seatIndexAt(loc: Location): Int {
+        if (loc.world != center.world || loc.blockY != center.blockY) return -1
+        return seatOffsets(playerCount).indexOfFirst { (dx, dz) ->
+            center.blockX + dx == loc.blockX && center.blockZ + dz == loc.blockZ
+        }
+    }
+
+    fun removeSeat(index: Int) {
+        removedSeats += index
+        val (dx, dz) = seatOffsets(playerCount)[index]
+        placedBlocks.removeAll {
+            it.blockX == center.blockX + dx && it.blockY == center.blockY && it.blockZ == center.blockZ + dz
         }
     }
 

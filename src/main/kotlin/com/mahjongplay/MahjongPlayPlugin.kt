@@ -1,6 +1,7 @@
 package com.mahjongplay
 
 import com.mahjongplay.interaction.EntityInteractionListener
+import com.mahjongplay.table.GSitHook
 import com.mahjongplay.table.MahjongCommand
 import com.mahjongplay.table.MahjongTableManager
 import com.mahjongplay.util.ScheduleUtil
@@ -38,6 +39,9 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
 
         server.pluginManager.registerEvents(EntityInteractionListener(tableManager), this)
         server.pluginManager.registerEvents(this, this)
+        if (server.pluginManager.isPluginEnabled("GSit")) {
+            server.pluginManager.registerEvents(GSitHook(tableManager), this)
+        }
 
         ScheduleUtil.globalLater(20L) {
             tableManager.loadTables(dataFolder)
@@ -70,7 +74,10 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
 
     @EventHandler
     fun onBlockBreak(event: BlockBreakEvent) {
-        if (tableManager.isProtectedBlock(event.block.location)) {
+        if (!tableManager.isProtectedBlock(event.block.location)) return
+        if (tableManager.breakSeat(event.block.location, event.player)) {
+            event.isDropItems = false
+        } else {
             event.isCancelled = true
         }
     }

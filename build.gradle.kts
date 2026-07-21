@@ -20,6 +20,8 @@ dependencies {
 
     compileOnly(files("libs/Residence5.1.6.2.jar"))
 
+    compileOnly("com.github.Gecolay.GSit:core:3.5.1")
+
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.20.0")
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-core:2.20.0")
 
@@ -29,13 +31,20 @@ dependencies {
     implementation("com.github.mahjong4j:mahjong4j:0.3.2")
 
     implementation("fr.skytasul:glowingentities:1.4.10")
+
+    testImplementation(kotlin("test"))
+    testImplementation("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
 }
+
+tasks.test { useJUnitPlatform() }
 
 kotlin {
     jvmToolchain(21)
 }
 
 tasks {
+    jar { enabled = false }
+
     shadowJar {
         archiveClassifier.set("")
         archiveFileName.set("MahjongPlay-${project.version}.jar")
