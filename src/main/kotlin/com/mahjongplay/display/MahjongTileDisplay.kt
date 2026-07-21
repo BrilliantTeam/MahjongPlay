@@ -2,8 +2,6 @@ package com.mahjongplay.display
 
 import com.mahjongplay.MahjongPlayPlugin
 import com.mahjongplay.model.MahjongTile
-import io.papermc.paper.datacomponent.DataComponentTypes
-import io.papermc.paper.datacomponent.item.CustomModelData
 import org.bukkit.Location
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Interaction
@@ -84,10 +82,10 @@ class MahjongTileDisplay(
         yaw = newYaw
         face = newFace
         entity?.let {
-            it.teleport(loc)
+            it.teleportAsync(loc)
             applyTransform(it)
         }
-        interactionEntity?.teleport(loc)
+        interactionEntity?.teleportAsync(loc)
     }
 
     fun showTo(player: Player) {
@@ -126,15 +124,9 @@ class MahjongTileDisplay(
     }
 
     companion object {
-        @Suppress("UnstableApiUsage")
         fun createTileItem(tile: MahjongTile): ItemStack {
             val item = ItemStack(Material.PAPER)
-            item.setData(
-                DataComponentTypes.CUSTOM_MODEL_DATA,
-                CustomModelData.customModelData()
-                    .addFloat((tile.code + 1).toFloat())
-                    .build()
-            )
+            item.editMeta { it.setCustomModelData(tile.code + 1) }
             return item
         }
     }

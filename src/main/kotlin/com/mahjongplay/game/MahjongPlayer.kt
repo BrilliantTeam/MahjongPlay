@@ -4,6 +4,7 @@ import com.mahjongplay.interaction.ChatActionSender
 import com.mahjongplay.model.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
+import com.mahjongplay.util.msg
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
@@ -75,17 +76,14 @@ class MahjongPlayer(
         if (behavior == MahjongGameBehavior.DISCARD) {
             val tile = MahjongTile.entries.find { it.code == data.toIntOrNull() }
             if (tile != null && discardForbiddenTiles.any { it.mahjong4jTile == tile.mahjong4jTile }) {
-                bukkitPlayer?.sendMessage(
-                    Component.text("[麻将] ", NamedTextColor.GOLD)
-                        .append(Component.text("食替禁止: 鸣牌后不能立即打出 ${tile.displayName}", NamedTextColor.RED))
-                )
+                bukkitPlayer?.msg("食替禁止：鳴牌後不能立即打出 ${tile.displayName}", NamedTextColor.RED)
                 return false
             }
         }
         return pending.deferred.complete(behavior to data)
     }
 
-    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳过", "", NamedTextColor.RED)
+    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", NamedTextColor.RED)
 
     override suspend fun askToDiscardTile(
         timeoutTile: MahjongTile,
@@ -211,16 +209,16 @@ class MahjongPlayer(
     ): MahjongTile? {
         val kanSubs = buildList {
             canAnkanTiles.forEach { t ->
-                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "暗杠 ${t.displayName}", "${t.code}", NamedTextColor.DARK_AQUA))
+                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "暗槓 ${t.displayName}", "${t.code}", NamedTextColor.DARK_AQUA))
             }
             canKakanTiles.forEach { (t, _) ->
-                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "加杠 ${t.displayName}", "${t.code}", NamedTextColor.AQUA))
+                add(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "加槓 ${t.displayName}", "${t.code}", NamedTextColor.AQUA))
             }
         }
         actionOptions = if (kanSubs.size == 1) {
             listOf(kanSubs[0], skipOption)
         } else {
-            listOf(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "杠", "", NamedTextColor.DARK_AQUA, subOptions = kanSubs), skipOption)
+            listOf(ActionDisplayOption(MahjongGameBehavior.ANKAN_OR_KAKAN, "槓", "", NamedTextColor.DARK_AQUA, subOptions = kanSubs), skipOption)
         }
         return waitForBehaviorResult(
             behavior = MahjongGameBehavior.ANKAN_OR_KAKAN
@@ -242,7 +240,7 @@ class MahjongPlayer(
         rule: MahjongRule,
     ): MahjongGameBehavior {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.MINKAN, "明杠", "", NamedTextColor.DARK_AQUA),
+            ActionDisplayOption(MahjongGameBehavior.MINKAN, "明槓", "", NamedTextColor.DARK_AQUA),
             ActionDisplayOption(MahjongGameBehavior.PON, "碰", "", NamedTextColor.BLUE),
             skipOption
         )
@@ -299,7 +297,7 @@ class MahjongPlayer(
 
     override suspend fun askToRon(tile: MahjongTile, target: ClaimTarget): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.RON, "荣", "", NamedTextColor.RED),
+            ActionDisplayOption(MahjongGameBehavior.RON, "榮", "", NamedTextColor.RED),
             skipOption
         )
         return waitForBehaviorResult(
@@ -311,7 +309,7 @@ class MahjongPlayer(
 
     override suspend fun askToKyuushuKyuuhai(): Boolean {
         actionOptions = listOf(
-            ActionDisplayOption(MahjongGameBehavior.KYUUSHU_KYUUHAI, "九种九牌", "", NamedTextColor.YELLOW),
+            ActionDisplayOption(MahjongGameBehavior.KYUUSHU_KYUUHAI, "九種九牌", "", NamedTextColor.YELLOW),
             skipOption
         )
         return waitForBehaviorResult(

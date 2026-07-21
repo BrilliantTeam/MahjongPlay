@@ -1,12 +1,12 @@
 # MahjongPlay
 
-一个纯服务端的 Paper 插件，在 Minecraft 中实现完整的日本立直麻将。玩家通过右键点击 3D 麻将牌实体进行游戏，无需安装任何客户端 Mod。
+一個純服務端的 Paper 插件，在 Minecraft 中實現完整的日本立直麻將。玩家通過右鍵點擊 3D 麻將牌實體進行遊戲，無需安裝任何客戶端 Mod。
 
-移植自 Fabric 模组 [MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
-并在此基础上加入了三人麻将的玩法和更多适合服务器的便利功能。
+移植自 Fabric 模組 [MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
+並在此基礎上加入了三人麻將的玩法和更多適合服務器的便利功能。
 
 <details>
-<summary>截图演示</summary>
+<summary>截圖演示</summary>
 <img width="2536" height="1508" alt="Screenshot from 2026-03-24 18-23-38" src="https://github.com/user-attachments/assets/61f952f3-df14-41cd-a065-54dd5894d7c1" />
 
 <img width="2358" height="1361" alt="Screenshot from 2026-03-24 18-22-36" src="https://github.com/user-attachments/assets/58314e0a-05b1-4874-a2c7-d010fa00a296" />
@@ -19,46 +19,46 @@
 
 ## 功能特性
 
-- **纯服务端** — 玩家只需接受服务器资源包即可游玩
-- **3D 麻将牌** — 使用 ItemDisplay 实体在 3×3 牌桌上展示立体麻将牌
-- **右键交互** — 出牌、吃、碰、杠、立直、荣和、自摸等所有操作均通过右键点击完成
-- **多种模式** — 支持四麻（半庄/东风/一局）和三麻，规则完整
-- **三人麻将（三麻）** — 去除二万~八万、禁止吃、拔北（抜きドラ）、自摸损计分
-- **两步出牌确认** — 第一次点击抬起麻将牌，第二次点击确认出牌，同时高亮牌河中相同的牌
-- **TextDisplay 操作按钮** — 吃/碰/杠等操作以悬浮按钮形式显示，支持二级子菜单
-- **Boss 血条** — 常驻显示场风、牌山剩余、所有玩家风位/名字/倒计时
-- **ActionBar HUD** — 实时显示局数、本场、宝牌、点数、听牌提示
-- **Title 通知** — 吃/碰/杠/立直/自摸/荣和/流局等事件以屏幕中央标题显示
-- **牌桌持久化** — 服务器重启后牌桌自动恢复
-- **自动开始** — 所有玩家准备后 3 秒倒计时自动开始，空位自动补机器人
-- **牌桌保护** — 玩家无法破坏牌桌方块
-- **中文役种名** — 所有役种以中文显示，支持番/符/满贯等计分展示
-- **赤宝牌** — 默认包含 3 张赤宝牌（赤五万/赤五筒/赤五索）
+- **純服務端** — 玩家只需接受服務器資源包即可遊玩
+- **3D 麻將牌** — 使用 ItemDisplay 實體在 3×3 牌桌上展示立體麻將牌
+- **右鍵交互** — 出牌、吃、碰、槓、立直、榮和、自摸等所有操作均通過右鍵點擊完成
+- **多種模式** — 支持四麻（半莊/東風/一局）和三麻，規則完整
+- **三人麻將（三麻）** — 去除二萬~八萬、禁止吃、拔北（抜きドラ）、自摸損計分
+- **兩步出牌確認** — 第一次點擊抬起麻將牌，第二次點擊確認出牌，同時高亮牌河中相同的牌
+- **TextDisplay 操作按鈕** — 吃/碰/槓等操作以懸浮按鈕形式顯示，支持二級子菜單
+- **Boss 血條** — 常駐顯示場風、牌山剩餘、所有玩家風位/名字/倒計時
+- **ActionBar HUD** — 實時顯示局數、本場、寶牌、點數、聽牌提示
+- **Title 通知** — 吃/碰/槓/立直/自摸/榮和/流局等事件以屏幕中央標題顯示
+- **牌桌持久化** — 服務器重啟後牌桌自動恢復
+- **自動開始** — 所有玩家準備後 3 秒倒計時自動開始，空位自動補機器人
+- **牌桌保護** — 玩家無法破壞牌桌方塊
+- **中文役種名** — 所有役種以中文顯示，支持番/符/滿貫等計分展示
+- **赤寶牌** — 默認包含 3 張赤寶牌（赤五萬/赤五筒/赤五索）
 
-## 环境要求
+## 環境要求
 
-- Paper 1.20.1（感谢 @icgnos）/ 1.21.4+
+- Paper 1.21.1
 - Java 21
-- 服务器资源包（麻将牌模型和贴图，已包含在 `resource-pack/` 目录中）
+- 服務器資源包（麻將牌模型和貼圖，已包含在 `resource-pack/` 目錄中）
 
 ## 指令
 
-| 指令 | 权限 | 说明 |
+| 指令 | 權限 | 說明 |
 |------|------|------|
-| `/mahjong create [one/east/twowind/three]` | `mahjongplay.command.create` | 创建牌桌（一局/东风/半庄/三麻） |
-| `/mahjong destroy [牌桌ID]` | `mahjongplay.command.destroy` | 销毁指定牌桌（支持 Tab 补全） |
-| `/mahjong bot` | `mahjongplay.command.bot` | 添加机器人 |
-| `/mahjong kick <座位号>` | `mahjongplay.command.kick` | 踢出玩家 |
-| `/mahjong start` | `mahjongplay.command.start` | 强制开始游戏 |
+| `/mahjong create [one/east/twowind/three]` | `mahjongplay.command.create` | 創建牌桌（一局/東風/半莊/三麻） |
+| `/mahjong destroy [牌桌ID]` | `mahjongplay.command.destroy` | 銷毀指定牌桌（支持 Tab 補全） |
+| `/mahjong bot` | `mahjongplay.command.bot` | 添加機器人 |
+| `/mahjong kick <座位號>` | `mahjongplay.command.kick` | 踢出玩家 |
+| `/mahjong start` | `mahjongplay.command.start` | 強制開始遊戲 |
 | `/mahjong join [id]` | `mahjongplay.command.join` | 加入牌桌 |
-| `/mahjong leave` | `mahjongplay.command.leave` | 离开牌桌 |
-| `/mahjong ready` | `mahjongplay.command.ready` | 准备 |
-| `/mahjong unready` | `mahjongplay.command.unready` | 取消准备 |
+| `/mahjong leave` | `mahjongplay.command.leave` | 離開牌桌 |
+| `/mahjong ready` | `mahjongplay.command.ready` | 準備 |
+| `/mahjong unready` | `mahjongplay.command.unready` | 取消準備 |
 | `/mahjong list` | `mahjongplay.command.list` | 查看所有牌桌 |
-| `/mahjong info` | `mahjongplay.command.info` | 查看当前牌桌信息 |
-| `/mahjong action ...` | `mahjongplay.command.action` | 执行麻将操作命令 |
+| `/mahjong info` | `mahjongplay.command.info` | 查看當前牌桌信息 |
+| `/mahjong action ...` | `mahjongplay.command.action` | 執行麻將操作命令 |
 
-默认授予的权限节点：
+默認授予的權限節點：
 - `mahjongplay.command.join`
 - `mahjongplay.command.leave`
 - `mahjongplay.command.ready`
@@ -67,23 +67,23 @@
 - `mahjongplay.command.list`
 - `mahjongplay.command.info`
 
-未设置 `default` 的权限节点不会自动授予，需要你自行通过权限插件分配。
+未設置 `default` 的權限節點不會自動授予，需要你自行通過權限插件分配。
 
-## 构建
+## 構建
 
 ```bash
 ./gradlew shadowJar
 ```
 
-输出：`build/libs/MahjongPlay-1.2.0.jar`
+輸出：`build/libs/MahjongPlay-1.2.0.jar`
 
-## 致谢
+## 致謝
 
-- 原版模组：[MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
-- 麻将逻辑库：[mahjong4j](https://github.com/mahjong4j/mahjong4j)
-- 牌面贴图：[mahjong_graphic](https://github.com/lietxia/mahjong_graphic)（雀魂样式，作者：lietxia）
+- 原版模組：[MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
+- 麻將邏輯庫：[mahjong4j](https://github.com/mahjong4j/mahjong4j)
+- 牌面貼圖：[mahjong_graphic](https://github.com/lietxia/mahjong_graphic)（雀魂樣式，作者：lietxia）
 
-## 许可证
+## 許可證
 
 MIT
 
@@ -103,7 +103,7 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 - **Pure server-side** — players only need to accept the server resource pack
 - **3D tile display** using ItemDisplay entities on a 3×3 table
 - **Right-click interaction** for all actions (discard, chii, pon, kan, riichi, ron, tsumo)
-- **4-player (半庄/東風/一局) and 3-player (三麻) modes** with full rule support
+- **4-player (半莊/東風/一局) and 3-player (三麻) modes** with full rule support
 - **3-player mahjong (三麻)**: removed 2-8 manzu tiles, disabled chii, nukidora (拔北), tsumo loss scoring
 - **Two-click discard confirmation** with discard pile highlight
 - **TextDisplay action buttons** with two-level sub-menus
@@ -119,7 +119,7 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 
 ## Requirements
 
-- Paper 1.21.4+ (tested on Leaves core 1.21.8)
+- Paper 1.21.1
 - Java 21
 - Server resource pack with mahjong tile models (included in `resource-pack/`)
 

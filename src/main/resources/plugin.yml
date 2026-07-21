@@ -3,6 +3,7 @@ version: '${version}'
 main: com.mahjongplay.MahjongPlayPlugin
 description: Japanese Riichi Mahjong in Minecraft
 api-version: '1.21'
+folia-supported: true
 authors:
   - MahjongPlay
 commands:
@@ -12,33 +13,33 @@ commands:
     aliases: [mj, majiang]
 permissions:
   mahjongplay.command.create:
-    description: 允许创建麻将桌
+    description: 允許創建麻將桌
   mahjongplay.command.join:
-    description: 允许加入麻将桌
+    description: 允許加入麻將桌
     default: true
   mahjongplay.command.leave:
-    description: 允许离开麻将桌
+    description: 允許離開麻將桌
     default: true
   mahjongplay.command.ready:
-    description: 允许准备
+    description: 允許準備
     default: true
   mahjongplay.command.unready:
-    description: 允许取消准备
+    description: 允許取消準備
     default: true
   mahjongplay.command.start:
-    description: 允许强制开始游戏
+    description: 允許強制開始遊戲
   mahjongplay.command.bot:
-    description: 允许添加机器人
+    description: 允許添加機器人
   mahjongplay.command.kick:
-    description: 允许踢出玩家
+    description: 允許踢出玩家
   mahjongplay.command.destroy:
-    description: 允许销毁麻将桌
+    description: 允許銷毀麻將桌
   mahjongplay.command.action:
-    description: 允许执行麻将操作
+    description: 允許執行麻將操作
     default: true
   mahjongplay.command.list:
-    description: 允许查看麻将桌列表
+    description: 允許查看麻將桌列表
     default: true
   mahjongplay.command.info:
-    description: 允许查看麻将桌信息
+    description: 允許查看麻將桌信息
     default: true

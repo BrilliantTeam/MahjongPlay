@@ -4,6 +4,9 @@ import com.mahjongplay.game.GameStatus
 import com.mahjongplay.game.MahjongPlayer
 import com.mahjongplay.model.MahjongGameBehavior
 import com.mahjongplay.model.MahjongRule
+import com.mahjongplay.util.MESSAGE_PREFIX
+import com.mahjongplay.util.ScheduleUtil
+import com.mahjongplay.util.msg
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.command.Command
@@ -18,24 +21,24 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         private data class CommandPermission(val node: String, val deniedMessage: String)
 
         private val COMMAND_PERMISSIONS = mapOf(
-            "create" to CommandPermission("mahjongplay.command.create", "你没有权限创建麻将桌"),
-            "join" to CommandPermission("mahjongplay.command.join", "你没有权限加入麻将桌"),
-            "leave" to CommandPermission("mahjongplay.command.leave", "你没有权限离开麻将桌"),
-            "ready" to CommandPermission("mahjongplay.command.ready", "你没有权限准备"),
-            "unready" to CommandPermission("mahjongplay.command.unready", "你没有权限取消准备"),
-            "start" to CommandPermission("mahjongplay.command.start", "你没有权限强制开始游戏"),
-            "bot" to CommandPermission("mahjongplay.command.bot", "你没有权限添加机器人"),
-            "kick" to CommandPermission("mahjongplay.command.kick", "你没有权限踢出玩家"),
-            "destroy" to CommandPermission("mahjongplay.command.destroy", "你没有权限销毁麻将桌"),
-            "action" to CommandPermission("mahjongplay.command.action", "你没有权限执行麻将操作"),
-            "list" to CommandPermission("mahjongplay.command.list", "你没有权限查看麻将桌列表"),
-            "info" to CommandPermission("mahjongplay.command.info", "你没有权限查看麻将桌信息")
+            "create" to CommandPermission("mahjongplay.command.create", "你沒有權限創建麻將桌"),
+            "join" to CommandPermission("mahjongplay.command.join", "你沒有權限加入麻將桌"),
+            "leave" to CommandPermission("mahjongplay.command.leave", "你沒有權限離開麻將桌"),
+            "ready" to CommandPermission("mahjongplay.command.ready", "你沒有權限準備"),
+            "unready" to CommandPermission("mahjongplay.command.unready", "你沒有權限取消準備"),
+            "start" to CommandPermission("mahjongplay.command.start", "你沒有權限強制開始遊戲"),
+            "bot" to CommandPermission("mahjongplay.command.bot", "你沒有權限添加機器人"),
+            "kick" to CommandPermission("mahjongplay.command.kick", "你沒有權限踢出玩家"),
+            "destroy" to CommandPermission("mahjongplay.command.destroy", "你沒有權限銷毀麻將桌"),
+            "action" to CommandPermission("mahjongplay.command.action", "你沒有權限執行麻將操作"),
+            "list" to CommandPermission("mahjongplay.command.list", "你沒有權限查看麻將桌列表"),
+            "info" to CommandPermission("mahjongplay.command.info", "你沒有權限查看麻將桌信息")
         )
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage("Only players can use this command.")
+            sender.sendMessage(MESSAGE_PREFIX.append(Component.text("Only players can use this command.", NamedTextColor.RED)))
             return true
         }
 
@@ -74,7 +77,7 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
             "three" -> null
             "twowind", null -> MahjongRule.GameLength.TWO_WIND
             else -> {
-                player.msg("可选模式: one(一局) / east(东风) / twowind(半庄) / three(三麻半庄)", NamedTextColor.RED)
+                player.msg("可選模式：one（一局） / east（東風） / twowind（半莊） / three（三麻半莊）", NamedTextColor.RED)
                 return
             }
         }
@@ -89,24 +92,26 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         center.y = loc.blockY.toDouble()
         center.z = loc.blockZ + 0.5
         val session = manager.createTable(center, player.uniqueId.toString(), player.name, actualLength, actualPlayerCount, startingPoints)
-        session.table.spawn()
-        manager.registerJoinInteraction(session)
-        player.msg("麻将桌已创建! ${session.humanId}", NamedTextColor.GREEN)
-        player.msg("使用 /mahjong bot 添加机器人, /mahjong start 开始游戏", NamedTextColor.YELLOW)
+        ScheduleUtil.region(center) {
+            session.table.spawn()
+            manager.registerJoinInteraction(session)
+        }
+        player.msg("麻將桌已創建！${session.humanId}", NamedTextColor.GREEN)
+        player.msg("使用 /mahjong bot 添加機器人，/mahjong start 開始遊戲", NamedTextColor.YELLOW)
     }
 
     private fun handleJoin(player: Player, args: Array<out String>) {
         if (args.size < 2) {
             val sessions = manager.getAllSessions()
             if (sessions.isEmpty()) {
-                player.msg("没有可用的麻将桌", NamedTextColor.RED)
+                player.msg("沒有可用的麻將桌", NamedTextColor.RED)
                 return
             }
             val first = sessions.first()
             if (manager.joinTable(first.tableId, player.uniqueId.toString(), player.name)) {
-                player.msg("已加入麻将桌 ${first.tableId.toString().take(8)}", NamedTextColor.GREEN)
+                player.msg("已加入麻將桌 ${first.tableId.toString().take(8)}", NamedTextColor.GREEN)
             } else {
-                player.msg("无法加入 (可能已满或你已在游戏中)", NamedTextColor.RED)
+                player.msg("無法加入（可能已滿或你已在遊戲中）", NamedTextColor.RED)
             }
             return
         }
@@ -114,33 +119,33 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         val tableIdStr = args[1]
         val matchingSession = manager.getAllSessions().find { it.tableId.toString().startsWith(tableIdStr) }
         if (matchingSession == null) {
-            player.msg("找不到桌子: $tableIdStr", NamedTextColor.RED)
+            player.msg("找不到桌子：$tableIdStr", NamedTextColor.RED)
             return
         }
         if (manager.joinTable(matchingSession.tableId, player.uniqueId.toString(), player.name)) {
-            player.msg("已加入麻将桌", NamedTextColor.GREEN)
+            player.msg("已加入麻將桌", NamedTextColor.GREEN)
         } else {
-            player.msg("无法加入 (可能已满或你已在游戏中)", NamedTextColor.RED)
+            player.msg("無法加入（可能已滿或你已在遊戲中）", NamedTextColor.RED)
         }
     }
 
     private fun handleLeave(player: Player) {
         if (manager.leaveTable(player.uniqueId.toString())) {
-            player.msg("已离开麻将桌", NamedTextColor.YELLOW)
+            player.msg("已離開麻將桌", NamedTextColor.YELLOW)
         } else {
-            player.msg("你不在任何麻将桌中", NamedTextColor.RED)
+            player.msg("你不在任何麻將桌中", NamedTextColor.RED)
         }
     }
 
     private fun handleReady(player: Player, ready: Boolean) {
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
         if (session == null) {
-            player.msg("你不在任何麻将桌中", NamedTextColor.RED)
+            player.msg("你不在任何麻將桌中", NamedTextColor.RED)
             return
         }
         session.game.readyOrNot(player.uniqueId.toString(), ready)
         manager.updateTableDisplay(session)
-        player.msg(if (ready) "已准备" else "取消准备", NamedTextColor.GREEN)
+        player.msg(if (ready) "已準備" else "取消準備", NamedTextColor.GREEN)
         manager.checkAutoStart(session)
     }
 
@@ -148,16 +153,16 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
-            player.msg("没有可用的麻将桌", NamedTextColor.RED)
+            player.msg("沒有可用的麻將桌", NamedTextColor.RED)
             return
         }
         if (session.game.players.size != session.game.rule.playerCount) {
             val pc = session.game.rule.playerCount
-            player.msg("需要${pc}名玩家才能开始 (当前 ${session.game.players.size}/$pc, 使用 /mahjong bot 添加机器人)", NamedTextColor.RED)
+            player.msg("需要${pc}名玩家才能開始（當前 ${session.game.players.size}/$pc，使用 /mahjong bot 添加機器人）", NamedTextColor.RED)
             return
         }
         if (!session.game.players.all { it.ready }) {
-            player.msg("还有玩家未准备", NamedTextColor.RED)
+            player.msg("還有玩家未準備", NamedTextColor.RED)
             return
         }
         session.game.start()
@@ -167,21 +172,21 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
-            player.msg("没有可用的麻将桌", NamedTextColor.RED)
+            player.msg("沒有可用的麻將桌", NamedTextColor.RED)
             return
         }
         if (session.game.status != GameStatus.WAITING) {
-            player.msg("游戏已经开始", NamedTextColor.RED)
+            player.msg("遊戲已經開始", NamedTextColor.RED)
             return
         }
         if (session.game.players.size >= session.game.rule.playerCount) {
-            player.msg("桌子已满", NamedTextColor.RED)
+            player.msg("桌子已滿", NamedTextColor.RED)
             return
         }
         val botNum = session.game.players.count { !it.isRealPlayer } + 1
         session.game.addBot("Bot$botNum")
         manager.updateTableDisplay(session)
-        player.msg("已添加机器人 Bot$botNum (${session.game.players.size}/${session.game.rule.playerCount})", NamedTextColor.GREEN)
+        player.msg("已添加機器人 Bot$botNum（${session.game.players.size}/${session.game.rule.playerCount}）", NamedTextColor.GREEN)
         manager.checkAutoStart(session)
     }
 
@@ -189,12 +194,12 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
-            player.msg("没有可用的麻将桌", NamedTextColor.RED)
+            player.msg("沒有可用的麻將桌", NamedTextColor.RED)
             return
         }
         val index = args.getOrNull(1)?.toIntOrNull()
         if (index == null || index !in session.game.players.indices) {
-            player.msg("用法: /mahjong kick <座位号0-3>", NamedTextColor.RED)
+            player.msg("用法：/mahjong kick <座位號0-3>", NamedTextColor.RED)
             return
         }
         session.game.kick(index)
@@ -209,12 +214,12 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
             manager.getAllSessions().firstOrNull()
         }
         if (session == null) {
-            player.msg("找不到麻将桌: $humanId", NamedTextColor.RED)
+            player.msg("找不到麻將桌：$humanId", NamedTextColor.RED)
             return
         }
         val name = session.humanId
         manager.destroyTable(session.tableId)
-        player.msg("麻将桌 $name 已销毁", NamedTextColor.YELLOW)
+        player.msg("麻將桌 $name 已銷毀", NamedTextColor.YELLOW)
     }
 
     private fun handleAction(player: Player, args: Array<out String>) {
@@ -232,10 +237,10 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     private fun handleList(player: Player) {
         val sessions = manager.getAllSessions()
         if (sessions.isEmpty()) {
-            player.msg("没有活跃的麻将桌", NamedTextColor.YELLOW)
+            player.msg("沒有活躍的麻將桌", NamedTextColor.YELLOW)
             return
         }
-        player.msg("活跃的麻将桌:", NamedTextColor.GOLD)
+        player.msg("活躍的麻將桌：", NamedTextColor.GOLD)
         sessions.forEach { session ->
             val count = session.game.players.size
             val pc = session.game.rule.playerCount
@@ -247,28 +252,28 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     private fun handleInfo(player: Player) {
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
         if (session == null) {
-            player.msg("你不在任何麻将桌中", NamedTextColor.RED)
+            player.msg("你不在任何麻將桌中", NamedTextColor.RED)
             return
         }
-        player.msg("麻将桌 ${session.humanId}", NamedTextColor.GOLD)
+        player.msg("麻將桌 ${session.humanId}", NamedTextColor.GOLD)
         session.game.players.forEachIndexed { i, p ->
             val ready = if (p.ready) "✓" else "✗"
-            val type = if (p.isRealPlayer) "玩家" else "机器人"
+            val type = if (p.isRealPlayer) "玩家" else "機器人"
             player.msg("  $i. ${p.displayName} [$type] $ready", NamedTextColor.AQUA)
         }
         session.game.rule.toComponents().forEach { player.sendMessage(it) }
     }
 
     private fun sendHelp(player: Player) {
-        player.msg("=== 麻将指令 ===", NamedTextColor.GOLD)
-        player.msg("/mahjong create [one/east/twowind/three] - 创建麻将桌", NamedTextColor.YELLOW)
-        player.msg("/mahjong join [id] - 加入麻将桌", NamedTextColor.YELLOW)
-        player.msg("/mahjong leave - 离开麻将桌", NamedTextColor.YELLOW)
-        player.msg("/mahjong ready/unready - 准备/取消准备", NamedTextColor.YELLOW)
-        player.msg("/mahjong bot - 添加机器人", NamedTextColor.YELLOW)
-        player.msg("/mahjong start - 开始游戏", NamedTextColor.YELLOW)
-        player.msg("/mahjong destroy - 销毁麻将桌", NamedTextColor.YELLOW)
-        player.msg("/mahjong info - 查看当前桌信息", NamedTextColor.YELLOW)
+        player.msg("=== 麻將指令 ===", NamedTextColor.GOLD)
+        player.msg("/mahjong create [one/east/twowind/three] - 創建麻將桌", NamedTextColor.YELLOW)
+        player.msg("/mahjong join [id] - 加入麻將桌", NamedTextColor.YELLOW)
+        player.msg("/mahjong leave - 離開麻將桌", NamedTextColor.YELLOW)
+        player.msg("/mahjong ready/unready - 準備/取消準備", NamedTextColor.YELLOW)
+        player.msg("/mahjong bot - 添加機器人", NamedTextColor.YELLOW)
+        player.msg("/mahjong start - 開始遊戲", NamedTextColor.YELLOW)
+        player.msg("/mahjong destroy - 銷毀麻將桌", NamedTextColor.YELLOW)
+        player.msg("/mahjong info - 查看當前桌信息", NamedTextColor.YELLOW)
         player.msg("/mahjong list - 查看所有桌", NamedTextColor.YELLOW)
     }
 
@@ -305,7 +310,4 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         return false
     }
 
-    private fun Player.msg(text: String, color: NamedTextColor) {
-        sendMessage(Component.text("[麻将] ", NamedTextColor.GOLD).append(Component.text(text, color)))
-    }
 }

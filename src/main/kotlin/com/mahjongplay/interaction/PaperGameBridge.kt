@@ -5,6 +5,9 @@ import com.mahjongplay.display.BoardRenderer
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
 import com.mahjongplay.ui.TurnTimerBar
+import com.mahjongplay.util.CancelTask
+import com.mahjongplay.util.MESSAGE_PREFIX
+import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.YakuNameChinese
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -21,7 +24,7 @@ class PaperGameBridge(
     val tableManager: com.mahjongplay.table.MahjongTableManager,
 ) : GameEventListener, PendingActionListener {
 
-    private var hudTaskId: Int = -1
+    private var hudTask: CancelTask? = null
     private val turnTimerBar = TurnTimerBar(game)
 
     override fun onGameStart(game: MahjongGame) {
@@ -31,7 +34,7 @@ class PaperGameBridge(
             it.pendingActionListener = this
         }
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
-        broadcast(Component.text("[麻将] 游戏开始!", NamedTextColor.GOLD))
+        broadcast(MESSAGE_PREFIX.append(Component.text("遊戲開始！", NamedTextColor.GOLD)))
         startHudUpdates()
         turnTimerBar.cleanup()
         turnTimerBar.show()
@@ -41,7 +44,7 @@ class PaperGameBridge(
         renderer.onRoundStart(game, round)
         val title = Title.title(
             Component.text(round.displayName(), NamedTextColor.GOLD),
-            Component.text("本场${round.honba}", NamedTextColor.YELLOW),
+            Component.text("本場${round.honba}", NamedTextColor.YELLOW),
             Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500))
         )
         forEachPlayer { it.showTitle(title) }
@@ -71,7 +74,7 @@ class PaperGameBridge(
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onChii(player, claimedTile, from)
         showEventTitle(
-            Component.text("吃!", NamedTextColor.GREEN),
+            Component.text("吃！", NamedTextColor.GREEN),
             Component.text(player.displayName, NamedTextColor.AQUA)
         )
     }
@@ -79,7 +82,7 @@ class PaperGameBridge(
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onPon(player, claimedTile, from)
         showEventTitle(
-            Component.text("碰!", NamedTextColor.BLUE),
+            Component.text("碰！", NamedTextColor.BLUE),
             Component.text(player.displayName, NamedTextColor.AQUA)
         )
     }
@@ -87,7 +90,7 @@ class PaperGameBridge(
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
         renderer.onKan(player, tile, kanType, from)
         showEventTitle(
-            Component.text("杠!", NamedTextColor.DARK_AQUA),
+            Component.text("槓！", NamedTextColor.DARK_AQUA),
             Component.text(player.displayName, NamedTextColor.AQUA)
         )
     }
@@ -95,29 +98,29 @@ class PaperGameBridge(
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
         renderer.onRiichi(player, tile)
         showEventTitle(
-            Component.text("立直!", NamedTextColor.LIGHT_PURPLE),
+            Component.text("立直！", NamedTextColor.LIGHT_PURPLE),
             Component.text(player.displayName, NamedTextColor.AQUA)
         )
     }
 
     override fun onTsumo(player: MahjongPlayerBase, tile: MahjongTile, settlement: YakuSettlement) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(renderer.tableCenter, Runnable {
             renderer.revealHands(player)
         })
         showEventTitle(
-            Component.text("自摸!", NamedTextColor.GOLD),
+            Component.text("自摸！", NamedTextColor.GOLD),
             Component.text(player.displayName, NamedTextColor.AQUA)
         )
         sendYakuSummary(settlement)
     }
 
     override fun onRon(winners: List<MahjongPlayerBase>, loser: MahjongPlayerBase, tile: MahjongTile, settlements: List<YakuSettlement>) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(renderer.tableCenter, Runnable {
             winners.forEach { renderer.revealHands(it) }
         })
         val names = winners.joinToString(", ") { it.displayName }
         showEventTitle(
-            Component.text("荣和!", NamedTextColor.RED),
+            Component.text("榮和！", NamedTextColor.RED),
             Component.text(names, NamedTextColor.AQUA)
         )
         settlements.forEach { sendYakuSummary(it) }
@@ -125,7 +128,7 @@ class PaperGameBridge(
 
     override fun onDraw(draw: ExhaustiveDraw, settlement: ScoreSettlement) {
         if (draw == ExhaustiveDraw.NORMAL) {
-            Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+            ScheduleUtil.region(renderer.tableCenter, Runnable {
                 game.players.filter { it.isTenpai }.forEach { renderer.revealHands(it) }
             })
         }
@@ -139,8 +142,8 @@ class PaperGameBridge(
         settlement.rankedScoreList.forEachIndexed { index, ranked ->
             val line = Component.text("  ${index + 1}. ", NamedTextColor.YELLOW)
                 .append(Component.text(ranked.scoreItem.displayName, NamedTextColor.AQUA))
-                .append(Component.text("  ${ranked.scoreTotal}点", NamedTextColor.WHITE))
-                .append(Component.text(" (${ranked.scoreChangeText})", NamedTextColor.GRAY))
+                .append(Component.text("  ${ranked.scoreTotal}點", NamedTextColor.WHITE))
+                .append(Component.text("（${ranked.scoreChangeText}）", NamedTextColor.GRAY))
             broadcast(line)
         }
     }
@@ -155,14 +158,14 @@ class PaperGameBridge(
                 it.table.showActionButtons()
                 tableManager.registerJoinInteraction(it)
             }
-            broadcast(Component.text("[麻将] 游戏结束!", NamedTextColor.GOLD))
+            broadcast(MESSAGE_PREFIX.append(Component.text("遊戲結束！", NamedTextColor.GOLD)))
             val sorted = scoreList.sortedByDescending { it.scoreOrigin }
             sorted.forEachIndexed { index, item ->
-                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}点", NamedTextColor.YELLOW))
+                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", NamedTextColor.YELLOW))
             }
         }
         if (MahjongPlayPlugin.instance.isEnabled) {
-            Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, task)
+            ScheduleUtil.region(renderer.tableCenter, task)
         } else {
             task.run()
         }
@@ -173,7 +176,7 @@ class PaperGameBridge(
             addAll(settlement.yakuList.map { YakuNameChinese.getName(it) })
             addAll(settlement.yakumanList.map { YakuNameChinese.getName(it) })
             addAll(settlement.doubleYakumanList.map { PlainTextComponentSerializer.plainText().serialize(it.toText()) })
-            if (settlement.nagashiMangan) add("流局满贯")
+            if (settlement.nagashiMangan) add("流局滿貫")
             if (settlement.nukiDoraCount > 0) add("拔北×${settlement.nukiDoraCount}")
         }
         if (yakuNames.isEmpty()) return
@@ -183,36 +186,38 @@ class PaperGameBridge(
             if (!isYakuman && !settlement.nagashiMangan) {
                 append(" ${settlement.han}翻${settlement.fu}符")
             }
-            append(" ${settlement.score}点")
+            append(" ${settlement.score}點")
             val alias = when {
-                settlement.nagashiMangan -> "满贯"
+                settlement.nagashiMangan -> "滿貫"
                 isYakuman -> {
                     val rate = (settlement.yakumanList.size + settlement.doubleYakumanList.size * 2).coerceAtMost(6)
                     when (rate) {
-                        1 -> "役满"; 2 -> "二倍役满"; 3 -> "三倍役满"
-                        4 -> "四倍役满"; 5 -> "五倍役满"; else -> "六倍役满"
+                        1 -> "役滿"; 2 -> "二倍役滿"; 3 -> "三倍役滿"
+                        4 -> "四倍役滿"; 5 -> "五倍役滿"; else -> "六倍役滿"
                     }
                 }
-                settlement.han >= 13 -> "累计役满"
-                settlement.han >= 11 -> "三倍满"
-                settlement.han >= 8 -> "倍满"
-                settlement.han >= 6 -> "跳满"
-                settlement.han >= 5 || (settlement.fu >= 40 && settlement.han == 4) || (settlement.fu >= 70 && settlement.han == 3) -> "满贯"
+                settlement.han >= 13 -> "累計役滿"
+                settlement.han >= 11 -> "三倍滿"
+                settlement.han >= 8 -> "倍滿"
+                settlement.han >= 6 -> "跳滿"
+                settlement.han >= 5 || (settlement.fu >= 40 && settlement.han == 4) || (settlement.fu >= 70 && settlement.han == 3) -> "滿貫"
                 else -> null
             }
             if (alias != null) append("  !!$alias!!")
         }
 
-        broadcast(Component.text("  役: ${yakuNames.joinToString(", ")}", NamedTextColor.GREEN)
+        broadcast(Component.text("  役：${yakuNames.joinToString(", ")}", NamedTextColor.GREEN)
             .append(Component.text(scoreLine, NamedTextColor.YELLOW)))
     }
 
     private fun startHudUpdates() {
-        hudTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(MahjongPlayPlugin.instance, { updateHud() }, 0L, 20L)
+        // 只送 action bar, 不碰世界狀態, 放 global 即可
+        hudTask = ScheduleUtil.globalTimer(0L, 20L) { updateHud() }
     }
 
     private fun stopHudUpdates() {
-        if (hudTaskId != -1) { Bukkit.getScheduler().cancelTask(hudTaskId); hudTaskId = -1 }
+        hudTask?.invoke()
+        hudTask = null
     }
 
     private fun updateHud() {
@@ -240,14 +245,14 @@ class PaperGameBridge(
     }
 
     override fun onPendingActionStart(player: MahjongPlayer, behaviors: List<MahjongGameBehavior>, timeoutSeconds: Int) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(renderer.tableCenter, Runnable {
             turnTimerBar.startAction(player, behaviors, timeoutSeconds)
             renderer.spawnActionOptions(player.uuid, player.actionOptions)
         })
     }
 
     override fun onPendingActionEnd(player: MahjongPlayer) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(renderer.tableCenter, Runnable {
             turnTimerBar.endAction()
             if (player.riichiSelectionMode) {
                 player.riichiSelectionMode = false

@@ -5,7 +5,7 @@ import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.model.MahjongGameBehavior
 import com.mahjongplay.game.MahjongPlayer
 import com.mahjongplay.table.MahjongTableManager
-import net.kyori.adventure.text.Component
+import com.mahjongplay.util.msg
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.entity.Interaction
 import org.bukkit.event.EventHandler
@@ -28,25 +28,25 @@ class EntityInteractionListener(
         if (joinSession != null) {
             event.isCancelled = true
             if (joinSession.game.status != GameStatus.WAITING) {
-                player.sendMessage(Component.text("[麻将] 游戏正在进行中", NamedTextColor.RED))
+                player.msg("遊戲正在進行中", NamedTextColor.RED)
                 return
             }
 
             val existingSession = gameManager.getSessionForPlayer(playerUUID)
             if (existingSession != null && existingSession.tableId == joinSession.tableId) {
                 gameManager.leaveTable(playerUUID)
-                player.sendMessage(Component.text("[麻将] 已退出麻将桌", NamedTextColor.YELLOW))
+                player.msg("已退出麻將桌", NamedTextColor.YELLOW)
                 return
             }
 
             if (existingSession != null) {
-                player.sendMessage(Component.text("[麻将] 你已经在另一个麻将桌中了", NamedTextColor.RED))
+                player.msg("你已經在另一個麻將桌中了", NamedTextColor.RED)
                 return
             }
             if (gameManager.joinTable(joinSession.tableId, playerUUID, player.name)) {
-                player.sendMessage(Component.text("[麻将] 已加入麻将桌!", NamedTextColor.GREEN))
+                player.msg("已加入麻將桌！", NamedTextColor.GREEN)
             } else {
-                player.sendMessage(Component.text("[麻将] 无法加入 (桌子已满)", NamedTextColor.RED))
+                player.msg("無法加入（桌子已滿）", NamedTextColor.RED)
             }
             return
         }
@@ -58,13 +58,13 @@ class EntityInteractionListener(
 
             val mjPlayer = readySession.game.players.find { it.uuid == playerUUID }
             if (mjPlayer == null) {
-                player.sendMessage(Component.text("[麻将] 你不在这个麻将桌中", NamedTextColor.RED))
+                player.msg("你不在這個麻將桌中", NamedTextColor.RED)
                 return
             }
             val newReady = !mjPlayer.ready
             readySession.game.readyOrNot(playerUUID, newReady)
             gameManager.updateTableDisplay(readySession)
-            player.sendMessage(Component.text("[麻将] ${if (newReady) "已准备 ✓" else "取消准备 ✗"}", if (newReady) NamedTextColor.GREEN else NamedTextColor.YELLOW))
+            player.msg(if (newReady) "已準備 ✓" else "取消準備 ✗", if (newReady) NamedTextColor.GREEN else NamedTextColor.YELLOW)
             return
         }
 
@@ -75,17 +75,17 @@ class EntityInteractionListener(
 
             val mjPlayer = startSession.game.players.find { it.uuid == playerUUID }
             if (mjPlayer == null) {
-                player.sendMessage(Component.text("[麻将] 你不在这个麻将桌中", NamedTextColor.RED))
+                player.msg("你不在這個麻將桌中", NamedTextColor.RED)
                 return
             }
             if (!mjPlayer.ready) {
-                player.sendMessage(Component.text("[麻将] 请先准备", NamedTextColor.RED))
+                player.msg("請先準備", NamedTextColor.RED)
                 return
             }
 
             val error = gameManager.startGame(startSession)
             if (error != null) {
-                player.sendMessage(Component.text("[麻将] $error", NamedTextColor.RED))
+                player.msg(error, NamedTextColor.RED)
             }
             return
         }

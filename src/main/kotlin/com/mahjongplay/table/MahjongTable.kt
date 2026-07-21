@@ -12,7 +12,7 @@ import org.bukkit.entity.Interaction
 import org.bukkit.entity.TextDisplay
 import java.util.UUID
 
-class MahjongTable(val center: Location, val gameLengthText: String = "半庄", val playerCount: Int = 4) {
+class MahjongTable(val center: Location, val gameLengthText: String = "半莊", val playerCount: Int = 4) {
 
     private val placedBlocks = mutableListOf<Location>()
     var joinTextDisplay: TextDisplay? = null
@@ -111,7 +111,7 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
         readyTd.isSeeThrough = false
         readyTd.setViewRange(0.4f)
         readyTd.alignment = TextDisplay.TextAlignment.CENTER
-        readyTd.text(Component.text(" ✓ 准备 ", NamedTextColor.GREEN))
+        readyTd.text(Component.text(" ✓ 準備 ", NamedTextColor.GREEN))
         readyTextDisplay = readyTd
 
         val readyIntLoc = Location(world, center.x - 0.5, btnY - 0.15, center.z)
@@ -131,7 +131,7 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
         startTd.isSeeThrough = false
         startTd.setViewRange(0.4f)
         startTd.alignment = TextDisplay.TextAlignment.CENTER
-        startTd.text(Component.text(" ▶ 开始 ", NamedTextColor.GOLD))
+        startTd.text(Component.text(" ▶ 開始 ", NamedTextColor.GOLD))
         startTextDisplay = startTd
 
         val startIntLoc = Location(world, center.x + 0.5, btnY - 0.15, center.z)
@@ -158,10 +158,10 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
         val textDisplay = joinTextDisplay ?: return
         if (waiting) {
             if (playerCount > 0) showActionButtons() else hideActionButtons()
-            var text = Component.text("🀄 麻将 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+            var text = Component.text("🀄 麻將 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
                 .append(Component.text("[$gameLengthText]", NamedTextColor.AQUA).decoration(TextDecoration.BOLD, false))
                 .append(Component.newline())
-                .append(Component.text("右键点击加入/退出", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, false))
+                .append(Component.text("右鍵點擊加入/退出", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, false))
                 .append(Component.newline())
                 .append(Component.text("$playerCount/$maxPlayers 玩家", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, false))
 
@@ -174,10 +174,10 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
             textDisplay.text(text)
         } else {
             textDisplay.text(
-                Component.text("🀄 麻将 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+                Component.text("🀄 麻將 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
                     .append(Component.text("[$gameLengthText]", NamedTextColor.AQUA).decoration(TextDecoration.BOLD, false))
                     .append(Component.newline())
-                    .append(Component.text("游戏进行中", NamedTextColor.RED).decoration(TextDecoration.BOLD, false))
+                    .append(Component.text("遊戲進行中", NamedTextColor.RED).decoration(TextDecoration.BOLD, false))
             )
         }
     }
@@ -185,10 +185,10 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
     fun showCountdown(seconds: Int) {
         val textDisplay = joinTextDisplay ?: return
         textDisplay.text(
-            Component.text("🀄 麻将 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
+            Component.text("🀄 麻將 ", NamedTextColor.GOLD).decorate(TextDecoration.BOLD)
                 .append(Component.text("[$gameLengthText]", NamedTextColor.AQUA).decoration(TextDecoration.BOLD, false))
                 .append(Component.newline())
-                .append(Component.text("${seconds}秒后开始...", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, false))
+                .append(Component.text("${seconds}秒後開始...", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, false))
         )
     }
 

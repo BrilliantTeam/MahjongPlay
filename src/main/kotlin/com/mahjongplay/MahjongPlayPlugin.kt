@@ -3,6 +3,7 @@ package com.mahjongplay
 import com.mahjongplay.interaction.EntityInteractionListener
 import com.mahjongplay.table.MahjongCommand
 import com.mahjongplay.table.MahjongTableManager
+import com.mahjongplay.util.ScheduleUtil
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
@@ -38,9 +39,9 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(EntityInteractionListener(tableManager), this)
         server.pluginManager.registerEvents(this, this)
 
-        server.scheduler.runTaskLater(this, Runnable {
+        ScheduleUtil.globalLater(20L) {
             tableManager.loadTables(dataFolder)
-        }, 20L)
+        }
 
         logger.info("MahjongCraft v${pluginMeta.version} enabled!")
     }

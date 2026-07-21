@@ -405,14 +405,12 @@ abstract class MahjongPlayerBase {
         val discardedTilesList = discardedTiles.map { it.mahjong4jTile }
         if (machi.any { it in discardedTilesList }) return true
 
-        // 同巡振听: 从自己最后一次打牌到现在，是否有听牌被打出
         if (lastDiscardAllIndex >= 0 && lastDiscardAllIndex < discards.size) {
             for (index in lastDiscardAllIndex until discards.lastIndex) {
                 if (discards[index] in machi) return true
             }
         }
 
-        // 立直振听: 从立直宣言到现在，是否有听牌被打出
         if ((riichi || doubleRiichi) && riichiAllIndex >= 0 && riichiAllIndex < discards.size) {
             for (index in riichiAllIndex until discards.lastIndex) {
                 if (discards[index] in machi) return true

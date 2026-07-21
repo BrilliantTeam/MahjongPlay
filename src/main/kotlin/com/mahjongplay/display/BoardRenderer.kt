@@ -7,6 +7,7 @@ import com.mahjongplay.display.TileConstants.PADDING
 import com.mahjongplay.display.TileConstants.WIDTH
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
+import com.mahjongplay.util.ScheduleUtil
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -95,55 +96,55 @@ class BoardRenderer(
     }
 
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             clearAllDisplays()
             spawnBotNameTags()
         })
     }
 
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderRiichiIndicator(player)
         })
     }
 
     override fun onHandsUpdated(player: MahjongPlayerBase) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderHands(player)
             if (player.nukiDoraTiles.isNotEmpty()) renderNukiDora(player)
         })
     }
 
     override fun onTileDiscarded(player: MahjongPlayerBase, tile: MahjongTile) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderDiscards(player)
             spawnFloatingCenterTile(tile)
         })
     }
 
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
             renderDiscards(from)
         })
     }
 
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
             renderDiscards(from)
         })
     }
 
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
             if (from != null) renderDiscards(from)
         })
     }
 
     override fun onGameEnd(game: MahjongGame, scoreList: List<ScoreItem>) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.region(tableCenter, Runnable {
             clearAllDisplays()
         })
     }
@@ -199,9 +200,9 @@ class BoardRenderer(
             ownerList.removeLast().remove()
         }
 
-        Bukkit.getScheduler().runTaskLater(MahjongPlayPlugin.instance, Runnable {
+        ScheduleUtil.regionLater(tableCenter, 1L, Runnable {
             updateVisibility(player)
-        }, 1L)
+        })
     }
 
     fun selectTileForDiscard(playerUUID: String, clickedIndex: Int): Boolean {
@@ -240,8 +241,8 @@ class BoardRenderer(
         if (machi.isNotEmpty()) {
             val machiStr = machi.joinToString(",") { it.displayName }
             val mjPlayer = player as? com.mahjongplay.game.MahjongPlayer
-            mjPlayer?.riichiActionBarOverride = Component.text("出牌: ${discard.displayName}", NamedTextColor.AQUA)
-                .append(Component.text(" | 听: $machiStr", NamedTextColor.YELLOW))
+            mjPlayer?.riichiActionBarOverride = Component.text("出牌：${discard.displayName}", NamedTextColor.AQUA)
+                .append(Component.text(" ｜ 聽：$machiStr", NamedTextColor.YELLOW))
         } else {
             clearTenpaiPreview(playerUUID)
         }
@@ -376,8 +377,8 @@ class BoardRenderer(
         val mjPlayer = game.seat.find { it.uuid == playerUUID } as? com.mahjongplay.game.MahjongPlayer
         if (mjPlayer != null) {
             val machiStr = machi.joinToString(",") { it.displayName }
-            mjPlayer.riichiActionBarOverride = Component.text("立直出牌: ${tile.displayName}", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text(" | 听: $machiStr", NamedTextColor.YELLOW))
+            mjPlayer.riichiActionBarOverride = Component.text("立直出牌：${tile.displayName}", NamedTextColor.LIGHT_PURPLE)
+                .append(Component.text(" ｜ 聽：$machiStr", NamedTextColor.YELLOW))
         }
 
         return false
@@ -385,7 +386,7 @@ class BoardRenderer(
 
     private fun raiseTileAt(playerUUID: String, index: Int) {
         teleportTileY(handOwnerDisplays[playerUUID]?.getOrNull(index), RAISE_OFFSET)
-        // 不抬起牌背 (handDisplays)，避免其他玩家看到哪张牌被选中
+        // 不抬起牌背 (handDisplays)，避免其他玩家看到哪張牌被選中
     }
 
     private fun lowerTileAt(playerUUID: String, index: Int) {
@@ -397,12 +398,12 @@ class BoardRenderer(
         display.entity?.let { e ->
             val loc = e.location.clone()
             loc.y += deltaY
-            e.teleport(loc)
+            e.teleportAsync(loc)
         }
         display.interactionEntity?.let { e ->
             val loc = e.location.clone()
             loc.y += deltaY
-            e.teleport(loc)
+            e.teleportAsync(loc)
         }
     }
 
@@ -472,7 +473,7 @@ class BoardRenderer(
         val seatIndex = game.seat.indexOf(player)
         if (seatIndex < 0) return
 
-        val withSkip = subOptions + ActionDisplayOption(MahjongGameBehavior.SKIP, "跳过", "", NamedTextColor.GRAY)
+        val withSkip = subOptions + ActionDisplayOption(MahjongGameBehavior.SKIP, "跳過", "", NamedTextColor.GRAY)
         spawnActionButtons(playerUUID, seatIndex, withSkip)
     }
 

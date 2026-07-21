@@ -2,6 +2,7 @@ package com.mahjongplay.interaction
 
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
+import com.mahjongplay.util.MESSAGE_PREFIX
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
@@ -13,13 +14,13 @@ import java.util.UUID
 object ChatActionSender {
 
     fun sendDiscardPrompt(player: Player, gameId: UUID, cannotDiscard: List<MahjongTile>, hands: List<MahjongTile>) {
-        val msg = Component.text("[麻将] ", NamedTextColor.GOLD)
-            .append(Component.text("请出牌 (点击手牌实体)", NamedTextColor.YELLOW))
+        val msg = MESSAGE_PREFIX
+            .append(Component.text("請出牌（點擊手牌實體）", NamedTextColor.YELLOW))
         player.sendMessage(msg)
     }
 
     fun sendActionPrompt(player: Player, gameId: UUID, actions: List<MahjongGameBehavior>, tile: MahjongTile?) {
-        var msg = Component.text("[麻将] ", NamedTextColor.GOLD)
+        var msg = MESSAGE_PREFIX
 
         actions.filter { it != MahjongGameBehavior.SKIP }.forEach { action ->
             val label = action.toText()
@@ -34,7 +35,7 @@ object ChatActionSender {
 
         val skipCmd = "/mahjong action SKIP"
         val skipButton = Component.text("[", NamedTextColor.GRAY)
-            .append(Component.text("跳过", NamedTextColor.DARK_GRAY))
+            .append(Component.text("跳過", NamedTextColor.DARK_GRAY))
             .append(Component.text("]", NamedTextColor.GRAY))
             .clickEvent(ClickEvent.runCommand(skipCmd))
         msg = msg.append(skipButton)
@@ -43,7 +44,7 @@ object ChatActionSender {
     }
 
     fun sendChiiOptions(player: Player, gameId: UUID, tile: MahjongTile, pairs: List<Pair<MahjongTile, MahjongTile>>) {
-        var msg = Component.text("[麻将] 选择吃的组合: ", NamedTextColor.GOLD)
+        var msg = MESSAGE_PREFIX.append(Component.text("選擇吃的組合：", NamedTextColor.GOLD))
         pairs.forEach { (a, b) ->
             val cmd = "/mahjong action CHII ${a.code},${b.code}"
             val label = "${a.displayName}+${b.displayName}"
@@ -53,12 +54,12 @@ object ChatActionSender {
             msg = msg.append(button)
         }
         val skipCmd = "/mahjong action SKIP"
-        msg = msg.append(Component.text("[跳过]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand(skipCmd)))
+        msg = msg.append(Component.text("[跳過]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand(skipCmd)))
         player.sendMessage(msg)
     }
 
     fun sendAnkanKakanOptions(player: Player, tiles: Set<MahjongTile>, kanType: String) {
-        var msg = Component.text("[麻将] 选择${if (kanType == "ankan") "暗杠" else "加杠"}的牌: ", NamedTextColor.GOLD)
+        var msg = MESSAGE_PREFIX.append(Component.text("選擇${if (kanType == "ankan") "暗槓" else "加槓"}的牌：", NamedTextColor.GOLD))
         tiles.forEach { tile ->
             val cmd = "/mahjong action ANKAN_OR_KAKAN ${tile.code}"
             val button = Component.text("[${tile.displayName}]", NamedTextColor.AQUA)
@@ -66,12 +67,12 @@ object ChatActionSender {
                 .append(Component.text(" "))
             msg = msg.append(button)
         }
-        msg = msg.append(Component.text("[跳过]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand("/mahjong action SKIP")))
+        msg = msg.append(Component.text("[跳過]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand("/mahjong action SKIP")))
         player.sendMessage(msg)
     }
 
     fun sendRiichiOptions(player: Player, tilePairs: List<Pair<MahjongTile, List<MahjongTile>>>) {
-        var msg = Component.text("[麻将] 立直 - 选择打出的牌: ", NamedTextColor.GOLD)
+        var msg = MESSAGE_PREFIX.append(Component.text("立直 - 選擇打出的牌：", NamedTextColor.GOLD))
         tilePairs.forEach { (tile, machi) ->
             val machiStr = machi.joinToString(",") { it.displayName }
             val cmd = "/mahjong action RIICHI ${tile.code}"
@@ -80,7 +81,7 @@ object ChatActionSender {
                 .append(Component.text("→$machiStr ", NamedTextColor.YELLOW))
             msg = msg.append(button)
         }
-        msg = msg.append(Component.text("[跳过]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand("/mahjong action SKIP")))
+        msg = msg.append(Component.text("[跳過]", NamedTextColor.DARK_GRAY).clickEvent(ClickEvent.runCommand("/mahjong action SKIP")))
         player.sendMessage(msg)
     }
 

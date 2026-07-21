@@ -1,9 +1,10 @@
 package com.mahjongplay.ui
 
-import com.mahjongplay.MahjongPlayPlugin
 import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.game.MahjongPlayerBase
 import com.mahjongplay.model.MahjongGameBehavior
+import com.mahjongplay.util.CancelTask
+import com.mahjongplay.util.ScheduleUtil
 import net.kyori.adventure.bossbar.BossBar
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -13,7 +14,7 @@ import java.util.UUID
 class TurnTimerBar(private val game: MahjongGame) {
 
     private var bar: BossBar? = null
-    private var timerTaskId: Int = -1
+    private var timerTask: CancelTask? = null
     private var startTimeMs: Long = 0
     private var durationMs: Long = 0
     private var activePlayerUUID: String? = null
@@ -21,7 +22,7 @@ class TurnTimerBar(private val game: MahjongGame) {
     private val shownPlayerUUIDs = mutableSetOf<UUID>()
 
     private val windNames: List<String>
-        get() = if (game.rule.playerCount == 3) listOf("东", "南", "西") else listOf("东", "南", "西", "北")
+        get() = if (game.rule.playerCount == 3) listOf("東", "南", "西") else listOf("東", "南", "西", "北")
 
     fun show() {
         if (bar != null) return
@@ -54,7 +55,8 @@ class TurnTimerBar(private val game: MahjongGame) {
         b.color(BossBar.Color.GREEN)
         b.name(buildTitle(totalSeconds))
 
-        timerTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(MahjongPlayPlugin.instance, {
+        // BossBar 不碰世界狀態, 放 global
+        timerTask = ScheduleUtil.globalTimer(0L, 2L) {
             val elapsed = System.currentTimeMillis() - startTimeMs
             val remaining = (durationMs - elapsed).coerceAtLeast(0)
             val progress = (remaining.toFloat() / durationMs).coerceIn(0f, 1f)
@@ -69,7 +71,7 @@ class TurnTimerBar(private val game: MahjongGame) {
             b.name(buildTitle(remainSec))
 
             if (remaining <= 0) endAction()
-        }, 0L, 2L)
+        }
     }
 
     fun endAction() {
@@ -91,7 +93,7 @@ class TurnTimerBar(private val game: MahjongGame) {
         val round = game.round
         var title = Component.text("${round.displayName()} ", NamedTextColor.GOLD)
             .append(Component.text("牌山${game.wallSize} ", NamedTextColor.GREEN))
-            .append(Component.text("| ", NamedTextColor.DARK_GRAY))
+            .append(Component.text("｜ ", NamedTextColor.DARK_GRAY))
 
         seatOrder.forEachIndexed { idx, player ->
             val wind = windNames.getOrElse(idx) { "?" }
@@ -101,19 +103,19 @@ class TurnTimerBar(private val game: MahjongGame) {
             if (isActive) {
                 val secColor = if (remainSec <= 5) NamedTextColor.RED else NamedTextColor.WHITE
                 title = title
-                    .append(Component.text("$wind(", NamedTextColor.YELLOW))
+                    .append(Component.text("$wind（", NamedTextColor.YELLOW))
                     .append(Component.text(name, NamedTextColor.AQUA))
-                    .append(Component.text(") ", NamedTextColor.YELLOW))
+                    .append(Component.text("） ", NamedTextColor.YELLOW))
                     .append(Component.text("${remainSec}s", secColor))
             } else {
                 title = title
-                    .append(Component.text("$wind(", NamedTextColor.GRAY))
+                    .append(Component.text("$wind（", NamedTextColor.GRAY))
                     .append(Component.text(name, NamedTextColor.GRAY))
-                    .append(Component.text(")", NamedTextColor.GRAY))
+                    .append(Component.text("）", NamedTextColor.GRAY))
             }
 
             if (idx < seatOrder.size - 1) {
-                title = title.append(Component.text(" | ", NamedTextColor.DARK_GRAY))
+                title = title.append(Component.text(" ｜ ", NamedTextColor.DARK_GRAY))
             }
         }
 
@@ -129,20 +131,18 @@ class TurnTimerBar(private val game: MahjongGame) {
     }
 
     private fun cancelTimer() {
-        if (timerTaskId != -1) {
-            Bukkit.getScheduler().cancelTask(timerTaskId)
-            timerTaskId = -1
-        }
+        timerTask?.invoke()
+        timerTask = null
     }
 
-    private var idleTaskId: Int = -1
+    private var idleTask: CancelTask? = null
 
     private fun startIdleUpdater() {
-        idleTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(MahjongPlayPlugin.instance, {
+        idleTask = ScheduleUtil.globalTimer(0L, 20L) {
             if (activePlayerUUID == null) {
                 bar?.name(buildTitle(0))
             }
-        }, 0L, 20L)
+        }
     }
 
     fun hideForPlayer(playerUUID: String) {
@@ -153,10 +153,8 @@ class TurnTimerBar(private val game: MahjongGame) {
 
     fun cleanup() {
         cancelTimer()
-        if (idleTaskId != -1) {
-            Bukkit.getScheduler().cancelTask(idleTaskId)
-            idleTaskId = -1
-        }
+        idleTask?.invoke()
+        idleTask = null
         hide()
     }
 }

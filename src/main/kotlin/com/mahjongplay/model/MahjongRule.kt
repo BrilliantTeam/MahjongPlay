@@ -36,29 +36,28 @@ data class MahjongRule(
     fun toJsonString(): String = Json.encodeToString(serializer(), this)
 
     fun toComponents(): List<Component> {
-        val colon = Component.text(": ").color(NamedTextColor.WHITE)
-        val enable = Component.text("开启").color(NamedTextColor.GREEN)
-        val disable = Component.text("关闭").color(NamedTextColor.GREEN)
+        val enable = Component.text("開啟").color(NamedTextColor.GREEN)
+        val disable = Component.text("關閉").color(NamedTextColor.GREEN)
         return listOf(
-            Component.text("§c§l规则"),
-            Component.text(" - 局数: ").color(NamedTextColor.YELLOW)
+            Component.text("§c§l規則"),
+            Component.text(" - 局數：").color(NamedTextColor.YELLOW)
                 .append(length.toText().color(NamedTextColor.GREEN)),
-            Component.text(" - 思考时间: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 思考時間：").color(NamedTextColor.YELLOW)
                 .append(Component.text("${thinkingTime.base}").color(NamedTextColor.AQUA))
                 .append(Component.text(" + ").color(NamedTextColor.RED))
                 .append(Component.text("${thinkingTime.extra}").color(NamedTextColor.AQUA))
                 .append(Component.text(" 秒").color(NamedTextColor.GREEN)),
-            Component.text(" - 起始点数: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 起始點數：").color(NamedTextColor.YELLOW)
                 .append(Component.text("$startingPoints").color(NamedTextColor.GREEN)),
-            Component.text(" - 1位必要点数: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 1位必要點數：").color(NamedTextColor.YELLOW)
                 .append(Component.text("$minPointsToWin").color(NamedTextColor.GREEN)),
-            Component.text(" - 翻缚: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 翻縛：").color(NamedTextColor.YELLOW)
                 .append(Component.text("${minimumHan.han}").color(NamedTextColor.GREEN)),
-            Component.text(" - 旁观: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 旁觀：").color(NamedTextColor.YELLOW)
                 .append(if (spectate) enable else disable),
-            Component.text(" - 赤宝牌: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 赤寶牌：").color(NamedTextColor.YELLOW)
                 .append(Component.text("${redFive.quantity}").color(NamedTextColor.GREEN)),
-            Component.text(" - 食断: ").color(NamedTextColor.YELLOW)
+            Component.text(" - 食斷：").color(NamedTextColor.YELLOW)
                 .append(if (openTanyao) enable else disable)
         )
     }
@@ -79,8 +78,8 @@ data class MahjongRule(
         val displayText: String
     ) : TextFormatting {
         ONE_GAME(Wind.EAST, 1, Wind.EAST to 3, "一局"),
-        EAST(Wind.EAST, 4, Wind.SOUTH to 3, "东风"),
-        TWO_WIND(Wind.EAST, 8, Wind.WEST to 3, "半庄");
+        EAST(Wind.EAST, 4, Wind.SOUTH to 3, "東風"),
+        TWO_WIND(Wind.EAST, 8, Wind.WEST to 3, "半莊");
 
         fun getStartingRound(): MahjongRound = MahjongRound(wind = startingWind)
 

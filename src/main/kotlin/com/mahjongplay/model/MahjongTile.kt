@@ -20,7 +20,7 @@ enum class MahjongTile : TextFormatting {
     NORTH,  // 北
 
     WHITE_DRAGON, // 白
-    GREEN_DRAGON, // 発
+    GREEN_DRAGON, // 發
     RED_DRAGON,   // 中
 
     M5_RED,
@@ -104,7 +104,7 @@ enum class MahjongTile : TextFormatting {
 
     override fun toText(): Component {
         return when (mahjong4jTile.type) {
-            TileType.MANZU -> Component.text("${mahjong4jTile.number}万")
+            TileType.MANZU -> Component.text("${mahjong4jTile.number}萬")
             TileType.PINZU -> Component.text("${mahjong4jTile.number}筒")
             TileType.SOHZU -> Component.text("${mahjong4jTile.number}索")
             TileType.FONPAI, TileType.SANGEN -> Component.text(
@@ -114,7 +114,7 @@ enum class MahjongTile : TextFormatting {
                     WEST, S5_RED -> "西"
                     NORTH -> "北"
                     WHITE_DRAGON -> "白"
-                    GREEN_DRAGON -> "発"
+                    GREEN_DRAGON -> "發"
                     RED_DRAGON -> "中"
                     else -> name
                 }
@@ -130,15 +130,15 @@ enum class MahjongTile : TextFormatting {
      */
     val displayName: String
         get() = when (this) {
-            M1 -> "一万"; M2 -> "二万"; M3 -> "三万"; M4 -> "四万"; M5 -> "五万"
-            M6 -> "六万"; M7 -> "七万"; M8 -> "八万"; M9 -> "九万"
+            M1 -> "一萬"; M2 -> "二萬"; M3 -> "三萬"; M4 -> "四萬"; M5 -> "五萬"
+            M6 -> "六萬"; M7 -> "七萬"; M8 -> "八萬"; M9 -> "九萬"
             P1 -> "一筒"; P2 -> "二筒"; P3 -> "三筒"; P4 -> "四筒"; P5 -> "五筒"
             P6 -> "六筒"; P7 -> "七筒"; P8 -> "八筒"; P9 -> "九筒"
             S1 -> "一索"; S2 -> "二索"; S3 -> "三索"; S4 -> "四索"; S5 -> "五索"
             S6 -> "六索"; S7 -> "七索"; S8 -> "八索"; S9 -> "九索"
             EAST -> "東"; SOUTH -> "南"; WEST -> "西"; NORTH -> "北"
-            WHITE_DRAGON -> "白"; GREEN_DRAGON -> "発"; RED_DRAGON -> "中"
-            M5_RED -> "赤五万"; P5_RED -> "赤五筒"; S5_RED -> "赤五索"
+            WHITE_DRAGON -> "白"; GREEN_DRAGON -> "發"; RED_DRAGON -> "中"
+            M5_RED -> "赤五萬"; P5_RED -> "赤五筒"; S5_RED -> "赤五索"
             UNKNOWN -> "?"
         }
 
