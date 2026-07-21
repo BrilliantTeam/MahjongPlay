@@ -59,38 +59,32 @@ object MahjongPanel {
         player.sendMessage(msg)
     }
 
-    fun open(manager: MahjongTableManager, player: Player) {
+    fun open(manager: MahjongTableManager, player: Player, showAll: Boolean = false) {
         val uuid = player.uniqueId.toString()
         player.sendMessage(MESSAGE_PREFIX.append(Component.text("麻將面板", MJColor.GOLD).decorate(TextDecoration.BOLD)))
 
         val current = manager.getSessionForPlayer(uuid)
-        val manageable = manager.getManageableSessions(player).take(8)
+        val manageable =
+            (if (showAll) manager.getManageableSessions(player) else manager.getOwnedSessions(player)).take(8)
         manageable.forEach { session ->
             player.sendMessage(MESSAGE_PREFIX.append(statusLine(session)))
-            player.sendMessage(MESSAGE_PREFIX.append(manageButtons(manager, session, seated = current != null)))
+            player.sendMessage(
+                MESSAGE_PREFIX.append(
+                    manageButtons(manager, session, seated = current != null, own = session.ownerUUID == uuid)
+                )
+            )
         }
 
         if (current != null) {
             player.sendMessage(MESSAGE_PREFIX.append(memberButtons(manager, current, uuid)))
-        } else {
-            val joinable = manager.getAllSessions().filter {
-                it.game.status == GameStatus.WAITING &&
-                    it.game.players.size < it.game.rule.playerCount &&
-                    manageable.none { owned -> owned.tableId == it.tableId }
-            }
-            if (joinable.isEmpty() && manageable.isEmpty()) {
-                player.msg("目前沒有可加入的牌桌", MJColor.GRAY)
-            }
-            joinable.take(8).forEach { session ->
-                player.sendMessage(
-                    MESSAGE_PREFIX.append(statusLine(session)).append(Component.space())
-                        .append(button("[加入]", MJColor.GREEN, REUSABLE, "入座 ${session.humanId}") { join(manager, it, session) })
-                )
+        } else if (manageable.isEmpty()) {
+            player.msg("要加入別人的牌桌請到牌桌前右鍵加入區", MJColor.DARK_GRAY)
+            if (player.hasPermission("mahjongplay.command.create")) {
+                player.msg("手持麻將牌左鍵方塊即可建立自己的牌桌", MJColor.DARK_GRAY)
             }
         }
-
-        if (manageable.isEmpty() && player.hasPermission("mahjongplay.command.create")) {
-            player.msg("手持麻將牌左鍵方塊即可建立自己的牌桌", MJColor.DARK_GRAY)
+        if (!showAll && player.hasPermission(MahjongTableManager.ADMIN_PERMISSION)) {
+            player.msg("輸入 /mahjong all 可列出並管理全服牌桌", MJColor.DARK_GRAY)
         }
     }
 
@@ -106,10 +100,15 @@ object MahjongPanel {
         return if (names.isEmpty()) line else line.append(Component.text(" 〔$names〕", MJColor.GRAY))
     }
 
-    private fun manageButtons(manager: MahjongTableManager, session: MahjongTableSession, seated: Boolean): Component {
+    private fun manageButtons(
+        manager: MahjongTableManager,
+        session: MahjongTableSession,
+        seated: Boolean,
+        own: Boolean
+    ): Component {
         var line = Component.text("  ", MJColor.GRAY)
         if (session.game.status == GameStatus.WAITING) {
-            if (!seated && session.game.players.size < session.game.rule.playerCount) {
+            if (own && !seated && session.game.players.size < session.game.rule.playerCount) {
                 line = line.append(button("[加入]", MJColor.GREEN, REUSABLE, "入座自己的牌桌") { join(manager, it, session) })
                     .append(Component.space())
             }

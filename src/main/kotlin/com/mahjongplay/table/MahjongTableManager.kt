@@ -231,6 +231,9 @@ class MahjongTableManager : GameRegistry {
     fun getManageableSessions(player: org.bukkit.entity.Player): List<MahjongTableSession> =
         tables.values.filter { canManage(it, player) }
 
+    fun getOwnedSessions(player: org.bukkit.entity.Player): List<MahjongTableSession> =
+        tables.values.filter { it.ownerUUID.isNotEmpty() && it.ownerUUID == player.uniqueId.toString() }
+
     fun kickSeat(session: MahjongTableSession, index: Int): String? {
         if (session.game.status != GameStatus.WAITING) return "遊戲進行中無法踢人"
         val target = session.game.players.getOrNull(index) ?: return "座位 $index 沒有玩家"

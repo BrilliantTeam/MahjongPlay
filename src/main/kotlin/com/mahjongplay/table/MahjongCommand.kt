@@ -29,7 +29,9 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
             return true
         }
 
-        MahjongPanel.open(manager, sender)
+        val showAll = args.firstOrNull()?.lowercase() == "all" &&
+            sender.hasPermission(MahjongTableManager.ADMIN_PERMISSION)
+        MahjongPanel.open(manager, sender, showAll)
         return true
     }
 
@@ -45,5 +47,7 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, label: String, args: Array<out String>): List<String> =
-        emptyList()
+        if (args.size == 1 && sender.hasPermission(MahjongTableManager.ADMIN_PERMISSION)) {
+            listOf("all").filter { it.startsWith(args[0].lowercase()) }
+        } else emptyList()
 }
