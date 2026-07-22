@@ -33,7 +33,7 @@ class PaperGameBridge(
             it.pendingActionListener = this
         }
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
-        broadcast(MESSAGE_PREFIX.append(Component.text("遊戲開始！", MJColor.GOLD)))
+        broadcast(MESSAGE_PREFIX.append(Component.text("開局！", MJColor.GOLD)))
         startHudUpdates()
         turnTimerBar.cleanup()
         turnTimerBar.show()
@@ -157,7 +157,7 @@ class PaperGameBridge(
                 it.table.showActionButtons()
                 tableManager.registerJoinInteraction(it)
             }
-            broadcast(MESSAGE_PREFIX.append(Component.text("遊戲結束！", MJColor.GOLD)))
+            broadcast(MESSAGE_PREFIX.append(Component.text("牌局結束！", MJColor.GOLD)))
             val sorted = scoreList.sortedByDescending { it.scoreOrigin }
             sorted.forEachIndexed { index, item ->
                 broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", MJColor.YELLOW))

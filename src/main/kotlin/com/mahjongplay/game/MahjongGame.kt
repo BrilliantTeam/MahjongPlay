@@ -91,7 +91,7 @@ class MahjongGame(
         }
 
 
-    fun addBot(name: String = "Bot") {
+    fun addBot(name: String = "電腦") {
         if (players.size >= playerCount) return
         players += MahjongBot(displayName = name)
     }

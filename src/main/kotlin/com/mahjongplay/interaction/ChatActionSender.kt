@@ -18,7 +18,7 @@ object ChatActionSender {
 
     fun sendDiscardPrompt(player: Player, gameId: UUID, cannotDiscard: List<MahjongTile>, hands: List<MahjongTile>) {
         val msg = MESSAGE_PREFIX
-            .append(Component.text("請出牌（點擊手牌實體）", MJColor.YELLOW))
+            .append(Component.text("請出牌（點擊自己的手牌）", MJColor.YELLOW))
         player.sendMessage(msg)
     }
 

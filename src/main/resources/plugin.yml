@@ -1,7 +1,7 @@
 name: MahjongPlay
 version: '${version}'
 main: com.mahjongplay.MahjongPlayPlugin
-description: Japanese Riichi Mahjong in Minecraft
+description: 在 Minecraft 中遊玩日本立直麻將
 api-version: '1.21'
 folia-supported: true
 softdepend: [Residence, GSit]
@@ -9,34 +9,34 @@ authors:
   - MahjongPlay
 commands:
   mahjong:
-    description: 開啟麻將聊天面板
+    description: 開啟麻將面板
     usage: /mahjong
     aliases: [mj, majiang]
 permissions:
   mahjongplay.admin:
-    description: 允許管理所有玩家的麻將桌
+    description: 允許管理所有玩家的牌桌
   mahjongplay.command.create:
-    description: 允許使用牌桌工具建立麻將桌
+    description: 允許手持麻將牌建立牌桌
   mahjongplay.command.join:
-    description: 允許加入麻將桌
+    description: 允許加入牌桌
     default: true
   mahjongplay.command.leave:
-    description: 允許離開麻將桌
+    description: 允許離開牌桌
     default: true
   mahjongplay.command.ready:
     description: 允許準備／取消準備
     default: true
   mahjongplay.command.start:
-    description: 允許開始自己的麻將桌
+    description: 允許開始自己的牌桌
     default: true
   mahjongplay.command.bot:
-    description: 允許在自己的麻將桌添加機器人
+    description: 允許在自己的牌桌加入電腦對手
     default: true
   mahjongplay.command.kick:
-    description: 允許踢出自己麻將桌的玩家
+    description: 允許踢出自己牌桌的玩家
     default: true
   mahjongplay.command.destroy:
-    description: 允許銷毀自己的麻將桌
+    description: 允許銷毀自己的牌桌
     default: true
   mahjongplay.command.action:
     description: 允許執行麻將操作

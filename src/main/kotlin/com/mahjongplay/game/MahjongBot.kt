@@ -4,7 +4,7 @@ import com.mahjongplay.model.*
 import java.util.UUID
 
 class MahjongBot(
-    override val displayName: String = "Bot",
+    override val displayName: String = "電腦",
     val botTileCode: Int = MahjongTile.random().code
 ) : MahjongPlayerBase() {
     override val uuid: String = UUID.randomUUID().toString()

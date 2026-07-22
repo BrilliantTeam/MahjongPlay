@@ -112,9 +112,9 @@ object MahjongPanel {
                 line = line.append(button("[加入]", MJColor.GREEN, REUSABLE, "入座自己的牌桌") { join(manager, it, session) })
                     .append(Component.space())
             }
-            line = line.append(button("[開始]", MJColor.GOLD, REUSABLE, "立刻開局，空位會自動補上機器人") { start(manager, it, session) })
+            line = line.append(button("[開始]", MJColor.GOLD, REUSABLE, "立刻開局，空位會自動補上電腦") { start(manager, it, session) })
                 .append(Component.space())
-                .append(button("[機器人]", MJColor.GREEN, REUSABLE, "在空位加入一名機器人") { addBot(manager, it, session) })
+                .append(button("[電腦]", MJColor.GREEN, REUSABLE, "在空位加入一個電腦對手") { addBot(manager, it, session) })
                 .append(Component.space())
                 .append(button("[踢人]", MJColor.YELLOW, REUSABLE, "展開座位清單，選擇要踢出的對象") { sendKickPrompt(manager, it, session) })
                 .append(Component.space())
@@ -145,14 +145,14 @@ object MahjongPanel {
 
     private fun create(manager: MahjongTableManager, player: Player, center: Location, mode: Mode) {
         if (!player.hasPermission("mahjongplay.command.create")) {
-            player.msg("你沒有權限建立麻將桌", MJColor.RED)
+            player.msg("你沒有權限建立牌桌", MJColor.RED)
             return
         }
         val tooClose = manager.getAllSessions().any {
             it.center.world == center.world && it.center.distanceSquared(center) < 36.0
         }
         if (tooClose) {
-            player.msg("這裡太靠近其他麻將桌了", MJColor.RED)
+            player.msg("這裡太靠近其他牌桌了", MJColor.RED)
             return
         }
         val blocked = placementError(player, center, mode.playerCount)
@@ -179,7 +179,7 @@ object MahjongPanel {
             return "你在這塊領地沒有建築權限"
         }
         if (blocks.any { !it.block.isReplaceable }) {
-            return "空間不足，牌桌需要 5x5 範圍與兩格高的淨空"
+            return "空間不足，牌桌需要 5×5 範圍、兩格高的淨空"
         }
         return null
     }
@@ -194,7 +194,7 @@ object MahjongPanel {
         if (!guard(manager, session, player, "mahjongplay.command.bot")) return
         val game = session.game
         if (game.status != GameStatus.WAITING) {
-            player.msg("遊戲已經開始", MJColor.RED)
+            player.msg("牌局已經開始", MJColor.RED)
             return
         }
         if (game.players.size >= game.rule.playerCount) {
@@ -202,7 +202,7 @@ object MahjongPanel {
             return
         }
         val botNum = game.players.count { !it.isRealPlayer } + 1
-        game.addBot("Bot$botNum")
+        game.addBot("電腦$botNum")
         manager.updateTableDisplay(session)
         manager.checkAutoStart(session)
         open(manager, player)
@@ -216,7 +216,7 @@ object MahjongPanel {
         }
         var msg = MESSAGE_PREFIX.append(Component.text("選擇要踢出的座位：", MJColor.GOLD))
         session.game.players.forEachIndexed { index, seated ->
-            val who = if (seated.isRealPlayer) "玩家" else "機器人"
+            val who = if (seated.isRealPlayer) "玩家" else "電腦"
             msg = msg.append(Component.space()).append(
                 button("[$index.${seated.displayName}]", MJColor.YELLOW, ONCE, "把${who} ${seated.displayName} 踢出牌桌") {
                     kick(manager, it, session, index)
@@ -259,7 +259,7 @@ object MahjongPanel {
 
     private fun leave(manager: MahjongTableManager, player: Player) {
         if (!player.hasPermission("mahjongplay.command.leave")) {
-            player.msg("你沒有權限離開麻將桌", MJColor.RED)
+            player.msg("你沒有權限離開牌桌", MJColor.RED)
             return
         }
         if (manager.leaveTable(player.uniqueId.toString())) {
@@ -272,7 +272,7 @@ object MahjongPanel {
 
     private fun join(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
         if (!player.hasPermission("mahjongplay.command.join")) {
-            player.msg("你沒有權限加入麻將桌", MJColor.RED)
+            player.msg("你沒有權限加入牌桌", MJColor.RED)
             return
         }
         if (manager.getSession(session.tableId) == null) {

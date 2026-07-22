@@ -219,7 +219,7 @@ class MahjongTable(
                 Component.text("🀄 麻將 ", MJColor.GOLD).decorate(TextDecoration.BOLD)
                     .append(Component.text("[$gameLengthText]", MJColor.AQUA).decoration(TextDecoration.BOLD, false))
                     .append(Component.newline())
-                    .append(Component.text("遊戲進行中", MJColor.RED).decoration(TextDecoration.BOLD, false))
+                    .append(Component.text("牌局進行中", MJColor.RED).decoration(TextDecoration.BOLD, false))
             )
         }
     }
@@ -230,7 +230,7 @@ class MahjongTable(
             Component.text("🀄 麻將 ", MJColor.GOLD).decorate(TextDecoration.BOLD)
                 .append(Component.text("[$gameLengthText]", MJColor.AQUA).decoration(TextDecoration.BOLD, false))
                 .append(Component.newline())
-                .append(Component.text("${seconds}秒後開始...", MJColor.YELLOW).decoration(TextDecoration.BOLD, false))
+                .append(Component.text("${seconds}秒後開始…", MJColor.YELLOW).decoration(TextDecoration.BOLD, false))
         )
     }
 

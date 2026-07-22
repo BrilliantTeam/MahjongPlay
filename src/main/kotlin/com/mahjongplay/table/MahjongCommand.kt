@@ -16,7 +16,7 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage(MESSAGE_PREFIX.append(Component.text("Only players can use this command.", MJColor.RED)))
+            sender.sendMessage(MESSAGE_PREFIX.append(Component.text("這個指令只有玩家能使用", MJColor.RED)))
             return true
         }
 

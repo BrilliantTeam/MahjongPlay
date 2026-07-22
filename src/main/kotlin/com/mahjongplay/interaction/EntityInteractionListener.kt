@@ -34,7 +34,7 @@ class EntityInteractionListener(
         event.isCancelled = true
         val player = event.player
         if (!player.hasPermission("mahjongplay.command.create")) {
-            player.msg("你沒有權限建立麻將桌", MJColor.RED)
+            player.msg("你沒有權限建立牌桌", MJColor.RED)
             return
         }
         val center = Location(block.world, block.x + 0.5, (block.y + 1).toDouble(), block.z + 0.5)
@@ -53,23 +53,23 @@ class EntityInteractionListener(
         if (joinSession != null) {
             event.isCancelled = true
             if (joinSession.game.status != GameStatus.WAITING) {
-                player.msg("遊戲正在進行中", MJColor.RED)
+                player.msg("牌局正在進行中", MJColor.RED)
                 return
             }
 
             val existingSession = gameManager.getSessionForPlayer(playerUUID)
             if (existingSession != null && existingSession.tableId == joinSession.tableId) {
                 gameManager.leaveTable(playerUUID)
-                player.msg("已退出麻將桌", MJColor.YELLOW)
+                player.msg("已退出牌桌", MJColor.YELLOW)
                 return
             }
 
             if (existingSession != null) {
-                player.msg("你已經在另一個麻將桌中了", MJColor.RED)
+                player.msg("你已經在另一個牌桌中了", MJColor.RED)
                 return
             }
             if (gameManager.joinTable(joinSession.tableId, playerUUID, player.name)) {
-                player.msg("已加入麻將桌！", MJColor.GREEN)
+                player.msg("已加入牌桌！", MJColor.GREEN)
             } else {
                 player.msg("無法加入（桌子已滿）", MJColor.RED)
             }
@@ -83,7 +83,7 @@ class EntityInteractionListener(
 
             val mjPlayer = readySession.game.players.find { it.uuid == playerUUID }
             if (mjPlayer == null) {
-                player.msg("你不在這個麻將桌中", MJColor.RED)
+                player.msg("你不在這個牌桌中", MJColor.RED)
                 return
             }
             val newReady = !mjPlayer.ready
@@ -99,7 +99,7 @@ class EntityInteractionListener(
             if (startSession.game.status != GameStatus.WAITING) return
 
             if (!gameManager.canManage(startSession, player)) {
-                player.msg("只有牌桌擁有者能開始遊戲", MJColor.RED)
+                player.msg("只有桌主才能開局", MJColor.RED)
                 return
             }
 

@@ -102,7 +102,7 @@ class MahjongTableManager : GameRegistry {
     }
 
     fun startGame(session: MahjongTableSession): String? {
-        if (session.game.status != GameStatus.WAITING) return "遊戲已在進行中"
+        if (session.game.status != GameStatus.WAITING) return "牌局進行中"
         if (session.game.players.isEmpty()) return "沒有玩家"
 
         val unready = session.game.players.filter { it.isRealPlayer && !it.ready }
@@ -111,7 +111,7 @@ class MahjongTableManager : GameRegistry {
         val pc = session.game.rule.playerCount
         while (session.game.players.size < pc) {
             val botNum = session.game.players.count { !it.isRealPlayer } + 1
-            session.game.addBot("Bot$botNum")
+            session.game.addBot("電腦$botNum")
         }
 
         session.table.hideActionButtons()
@@ -192,7 +192,7 @@ class MahjongTableManager : GameRegistry {
                 session.table.showCountdown(remaining)
                 session.game.players.forEach { mjp ->
                     Bukkit.getPlayer(UUID.fromString(mjp.uuid))?.actionBarMsg(
-                        Component.text("遊戲將在 ${remaining} 秒後開始...", MJColor.GOLD)
+                        Component.text("牌局將在 ${remaining} 秒後開始…", MJColor.GOLD)
                     )
                 }
                 countdownRemaining[session.tableId] = remaining - 1
@@ -235,11 +235,11 @@ class MahjongTableManager : GameRegistry {
         tables.values.filter { it.ownerUUID.isNotEmpty() && it.ownerUUID == player.uniqueId.toString() }
 
     fun kickSeat(session: MahjongTableSession, index: Int): String? {
-        if (session.game.status != GameStatus.WAITING) return "遊戲進行中無法踢人"
+        if (session.game.status != GameStatus.WAITING) return "牌局進行中無法踢人"
         val target = session.game.players.getOrNull(index) ?: return "座位 $index 沒有玩家"
         if (target.isRealPlayer) {
             leaveTable(target.uuid)
-            Bukkit.getPlayer(UUID.fromString(target.uuid))?.msg("你被踢出了麻將桌", MJColor.RED)
+            Bukkit.getPlayer(UUID.fromString(target.uuid))?.msg("你被踢出了牌桌", MJColor.RED)
         } else {
             session.game.kick(index)
             cancelCountdown(session.tableId)
@@ -353,7 +353,7 @@ class MahjongTableManager : GameRegistry {
     fun notifyIfInterrupted(playerUUID: String, playerBukkit: org.bukkit.entity.Player) {
         if (interruptedPlayers.remove(playerUUID)) {
             ScheduleUtil.globalLater(40L) {
-                playerBukkit.msg("你之前的牌局因服務器重啟而中斷，非常抱歉！", MJColor.YELLOW)
+                playerBukkit.msg("你之前的牌局因伺服器重啟而中斷，非常抱歉！", MJColor.YELLOW)
             }
         }
     }
