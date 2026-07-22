@@ -7,6 +7,7 @@ import com.mahjongplay.model.MahjongGameBehavior
 import com.mahjongplay.model.MahjongRound
 import com.mahjongplay.model.MahjongTile
 import com.mahjongplay.util.actionBarMsg
+import com.mahjongplay.util.machiText
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -40,13 +41,13 @@ object ActionBarHUD {
                 .append(Component.text("｜${mjPlayer.points}點", MJColor.WHITE))
                 .append(Component.text("｜寶牌：$doraStr", MJColor.RED))
 
-            val previewMachi = mjPlayer.previewMachiTiles
-            if (previewMachi.isNotEmpty()) {
-                val machiStr = previewMachi
-                    .distinctBy { it.mahjong4jTile }
-                    .filterNot { it.isRed }
-                    .joinToString(",") { it.displayName }
-                bar = bar.append(Component.text("｜聽：$machiStr", MJColor.LIGHT_PURPLE))
+            val machi = if (mjPlayer.hands.size == mjPlayer.waitingHandSize) {
+                game.machiWinnable(mjPlayer).takeIf { it.isNotEmpty() }?.let { machiText(it) }
+            } else {
+                mjPlayer.previewMachiTiles.takeIf { it.isNotEmpty() }?.let { machiText(it) }
+            }
+            if (machi != null) {
+                bar = bar.append(Component.text("｜聽：", MJColor.LIGHT_PURPLE)).append(machi)
             }
 
             player.sendActionBar(bar)

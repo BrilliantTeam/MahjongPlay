@@ -331,9 +331,11 @@ abstract class MahjongPlayerBase {
     val machiTiles: List<MahjongTile>
         get() = calculateMachi()
 
+    val waitingHandSize: Int
+        get() = 13 - fuuroList.size * 3
+
     val previewMachiTiles: List<MahjongTile>
         get() {
-            val waitingHandSize = 13 - fuuroList.size * 3
             if (hands.size == waitingHandSize) return calculateMachi()
             if (hands.size != waitingHandSize + 1) return emptyList()
             val allMachi = mutableSetOf<MahjongTile>()
@@ -343,11 +345,6 @@ abstract class MahjongPlayerBase {
             }
             return allMachi.toList()
         }
-
-    fun machiIfDiscard(discard: MahjongTile): List<MahjongTile> {
-        val remaining = hands.toMutableList().also { it.remove(discard) }
-        return calculateMachi(hands = remaining)
-    }
 
     private fun calculateMachi(
         hands: List<MahjongTile> = this.hands,
@@ -371,16 +368,15 @@ abstract class MahjongPlayerBase {
         }
     }
 
-    fun calculateMachiAndHan(
+    fun machiWinnable(
         hands: List<MahjongTile> = this.hands,
         fuuroList: List<Fuuro> = this.fuuroList,
         rule: MahjongRule,
         generalSituation: GeneralSituation,
         personalSituation: PersonalSituation,
-    ): Map<MahjongTile, Int> {
-        val allMachi = calculateMachi(hands, fuuroList)
-        return allMachi.associateWith { machiTile ->
-            val yakuSettlement = calculateYakuSettlement(
+    ): Map<MahjongTile, Boolean> =
+        calculateMachi(hands, fuuroList).associateWith { machiTile ->
+            canWin(
                 winningTile = machiTile,
                 isWinningTileInHands = false,
                 hands = hands,
@@ -388,12 +384,8 @@ abstract class MahjongPlayerBase {
                 rule = rule,
                 generalSituation = generalSituation,
                 personalSituation = personalSituation,
-                doraIndicators = emptyList(),
-                uraDoraIndicators = emptyList()
             )
-            yakuSettlement.let { if (it.yakuList.isNotEmpty() || it.yakumanList.isNotEmpty()) -1 else it.han }
         }
-    }
 
     fun isFuriten(tile: MahjongTile, discards: List<MahjongTile>): Boolean =
         isFuriten(tile.mahjong4jTile, discards.map { it.mahjong4jTile })

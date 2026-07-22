@@ -231,15 +231,13 @@ class BoardRenderer(
     }
 
     private fun showTenpaiPreview(playerUUID: String, player: MahjongPlayerBase, discard: MahjongTile) {
-        val machi = player.machiIfDiscard(discard)
-            .distinctBy { it.mahjong4jTile }
-            .filterNot { it.isRed }
+        val machi = game.machiWinnable(player, discard)
 
         if (machi.isNotEmpty()) {
-            val machiStr = machi.joinToString(",") { it.displayName }
             val mjPlayer = player as? com.mahjongplay.game.MahjongPlayer
             mjPlayer?.riichiActionBarOverride = Component.text("出牌：${discard.displayName}", MJColor.AQUA)
-                .append(Component.text(" ｜ 聽：$machiStr", MJColor.YELLOW))
+                .append(Component.text(" ｜ 聽：", MJColor.YELLOW))
+                .append(com.mahjongplay.util.machiText(machi))
         } else {
             clearTenpaiPreview(playerUUID)
         }

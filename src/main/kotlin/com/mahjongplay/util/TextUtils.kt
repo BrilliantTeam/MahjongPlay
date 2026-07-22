@@ -30,6 +30,22 @@ object MJColor {
 val MESSAGE_PREFIX: Component =
     LegacyComponentSerializer.legacySection().deserialize("§7｜§6系統§7｜§f飯娘：§7")
 
+fun machiText(machi: Map<com.mahjongplay.model.MahjongTile, Boolean>): Component {
+    var text = Component.empty()
+    machi.entries.forEachIndexed { index, (tile, winnable) ->
+        if (index > 0) text = text.append(Component.text(",", MJColor.GRAY))
+        text = if (winnable) text.append(Component.text(tile.displayName, MJColor.YELLOW))
+        else text.append(Component.text("${tile.displayName}✕", MJColor.GRAY))
+    }
+    if (machi.isNotEmpty() && machi.values.none { it }) {
+        text = text.append(Component.text("（無役）", MJColor.RED))
+    }
+    return text
+}
+
+fun machiText(machi: List<com.mahjongplay.model.MahjongTile>): Component =
+    machiText(machi.associateWith { true })
+
 fun Player.msg(text: String, color: TextColor) {
     sendMessage(MESSAGE_PREFIX.append(Component.text(text, color)))
 }

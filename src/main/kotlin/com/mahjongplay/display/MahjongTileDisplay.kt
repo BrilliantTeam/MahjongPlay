@@ -42,6 +42,7 @@ class MahjongTileDisplay(
     var interactionEntity: Interaction? = null
         private set
 
+
     fun spawn(): ItemDisplay {
         val world = location.world
         val display = world.spawnEntity(location, EntityType.ITEM_DISPLAY) as ItemDisplay
@@ -65,13 +66,16 @@ class MahjongTileDisplay(
 
     private fun spawnInteraction() {
         val world = location.world
-        val interaction = world.spawnEntity(location, EntityType.INTERACTION) as Interaction
+        val interaction = world.spawnEntity(interactionLocation(location), EntityType.INTERACTION) as Interaction
         interaction.isPersistent = false
-        interaction.interactionWidth = TileConstants.WIDTH + 0.02f
-        interaction.interactionHeight = TileConstants.HEIGHT + 0.02f
+        interaction.interactionWidth = TileConstants.WIDTH + HITBOX_MARGIN
+        interaction.interactionHeight = INTERACTION_HEIGHT
         interaction.isResponsive = false
         interactionEntity = interaction
     }
+
+    private fun interactionLocation(loc: Location): Location =
+        loc.clone().subtract(0.0, INTERACTION_HEIGHT / 2.0, 0.0)
 
     fun updateTile(newTile: MahjongTile) {
         entity?.setItemStack(createTileItem(newTile))
@@ -84,7 +88,7 @@ class MahjongTileDisplay(
             it.teleportAsync(loc)
             applyTransform(it)
         }
-        interactionEntity?.teleportAsync(loc)
+        interactionEntity?.teleportAsync(interactionLocation(loc))
     }
 
     fun showTo(player: Player) {
@@ -123,6 +127,9 @@ class MahjongTileDisplay(
     }
 
     companion object {
+        private const val HITBOX_MARGIN = 0.02f
+        private const val INTERACTION_HEIGHT = TileConstants.HEIGHT + HITBOX_MARGIN
+
         fun createTileItem(tile: MahjongTile): ItemStack {
             val item = ItemStack(Material.PAPER)
             item.editMeta { it.setCustomModelData(tile.code + 1) }

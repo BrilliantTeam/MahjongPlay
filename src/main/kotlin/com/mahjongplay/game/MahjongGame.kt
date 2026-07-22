@@ -645,10 +645,10 @@ class MahjongGame(
         delay(SCORE_SETTLE_MS)
     }
 
-    fun getMachiAndHan(player: MahjongPlayerBase, tile: MahjongTile): Map<MahjongTile, Int> {
+    fun machiWinnable(player: MahjongPlayerBase, discard: MahjongTile? = null): Map<MahjongTile, Boolean> {
         if (deadWall.isEmpty()) return emptyMap()
-        return player.calculateMachiAndHan(
-            hands = player.hands.toMutableList().apply { remove(tile) },
+        return player.machiWinnable(
+            hands = if (discard == null) player.hands else player.hands.toMutableList().apply { remove(discard) },
             rule = rule, generalSituation = generalSituation,
             personalSituation = player.getPersonalSituation()
         )
