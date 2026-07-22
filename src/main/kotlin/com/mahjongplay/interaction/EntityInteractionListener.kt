@@ -89,6 +89,7 @@ class EntityInteractionListener(
             val newReady = !mjPlayer.ready
             readySession.game.readyOrNot(playerUUID, newReady)
             gameManager.updateTableDisplay(readySession)
+            gameManager.checkAutoStart(readySession)
             player.msg(if (newReady) "已準備 ✓" else "取消準備 ✗", if (newReady) MJColor.GREEN else MJColor.YELLOW)
             return
         }

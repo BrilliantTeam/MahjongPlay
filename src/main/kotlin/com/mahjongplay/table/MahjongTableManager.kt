@@ -166,6 +166,8 @@ class MahjongTableManager : GameRegistry {
                 waiting = isWaiting,
                 playerInfo = playerInfo
             )
+            startInteractionToTable.values.removeAll { it == session.tableId }
+            readyInteractionToTable.values.removeAll { it == session.tableId }
             session.table.startInteraction?.uniqueId?.let { startInteractionToTable[it] = session.tableId }
             session.table.readyInteraction?.uniqueId?.let { readyInteractionToTable[it] = session.tableId }
         }
@@ -348,6 +350,13 @@ class MahjongTableManager : GameRegistry {
             ScheduleUtil.globalLater(40L) {
                 playerBukkit.msg("你之前的牌局因伺服器重啟而中斷，非常抱歉！", MJColor.YELLOW)
             }
+        }
+    }
+
+    fun refreshVisibility() {
+        tables.values.forEach { session ->
+            if (session.game.status != GameStatus.PLAYING) return@forEach
+            ScheduleUtil.region(session.center) { session.renderer.refreshVisibility() }
         }
     }
 

@@ -36,6 +36,7 @@ class MahjongTileDisplay(
     var face: TileFace = TileFace.FACE_DOWN,
     var yaw: Float = 0f,
     val interactive: Boolean = false,
+    val hiddenByDefault: Boolean = false,
 ) {
     var entity: ItemDisplay? = null
         private set
@@ -54,7 +55,7 @@ class MahjongTileDisplay(
         display.setItemStack(item)
         applyTransform(display)
 
-        display.setVisibleByDefault(false)
+        display.setVisibleByDefault(!hiddenByDefault)
         entity = display
 
         if (interactive) {

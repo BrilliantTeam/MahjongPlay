@@ -122,6 +122,7 @@ class BoardRenderer(
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
+            renderHands(player)
             renderDiscards(from)
         })
     }
@@ -129,6 +130,7 @@ class BoardRenderer(
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
+            renderHands(player)
             renderDiscards(from)
         })
     }
@@ -136,6 +138,7 @@ class BoardRenderer(
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
         ScheduleUtil.region(tableCenter, Runnable {
             renderFuuro(player)
+            renderHands(player)
             if (from != null) renderDiscards(from)
         })
     }
@@ -182,11 +185,14 @@ class BoardRenderer(
                 ownerList[index].updateTile(tile)
                 ownerList[index].updatePosition(loc.clone(), yaw, TileFace.STANDING)
             } else {
-                val backDisplay = MahjongTileDisplay(loc, MahjongTile.UNKNOWN, TileFace.STANDING, yaw)
+                val backDisplay = MahjongTileDisplay(loc, MahjongTile.UNKNOWN, TileFace.STANDING, yaw, hiddenByDefault = true)
                 backDisplay.spawn()
                 backList += backDisplay
 
-                val ownerDisplay = MahjongTileDisplay(loc.clone(), tile, TileFace.STANDING, yaw, interactive = isRealPlayer)
+                val ownerDisplay = MahjongTileDisplay(
+                    loc.clone(), tile, TileFace.STANDING, yaw,
+                    interactive = isRealPlayer, hiddenByDefault = true
+                )
                 ownerDisplay.spawn()
                 ownerList += ownerDisplay
             }
@@ -502,7 +508,6 @@ class BoardRenderer(
 
                 val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw)
                 display.spawn()
-                showToAllViewers(display)
                 existing += display
             }
         } else {
@@ -527,7 +532,6 @@ class BoardRenderer(
                 val tileYaw = if (isRiichi) yaw - 90f else yaw
                 val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, tileYaw)
                 display.spawn()
-                showToAllViewers(display)
                 existing += display
             }
 
@@ -574,7 +578,6 @@ class BoardRenderer(
                     val face = if (index == 1 || index == 2) TileFace.FACE_UP else TileFace.FACE_DOWN
                     val display = MahjongTileDisplay(loc, tile, face, yaw)
                     display.spawn()
-                    showToAllViewers(display)
                     existing += display
 
                     lastWasClaimTile = false
@@ -621,7 +624,6 @@ class BoardRenderer(
                     val loc = Location(world, posX, flatTileY, posZ)
                     val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, tileYaw)
                     display.spawn()
-                    showToAllViewers(display)
                     existing += display
 
                     if (isClaimTile) {
@@ -638,7 +640,6 @@ class BoardRenderer(
                     val loc = Location(world, kakanX, flatTileY, kakanZ)
                     val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw + 90f)
                     display.spawn()
-                    showToAllViewers(display)
                     existing += display
                 }
             }
@@ -680,7 +681,6 @@ class BoardRenderer(
 
             val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw)
             display.spawn()
-            showToAllViewers(display)
             existing += display
         }
     }
@@ -760,14 +760,12 @@ class BoardRenderer(
         botNameDisplays.clear()
     }
 
-    private fun showToAllViewers(display: MahjongTileDisplay) {
-        game.players.forEach { p ->
-            val bp = Bukkit.getPlayer(UUID.fromString(p.uuid))
-            if (bp != null) display.showTo(bp)
+    fun refreshVisibility() {
+        game.players.forEach { updateVisibility(it) }
+        actionDisplays.forEach { (uuid, displays) ->
+            val owner = Bukkit.getPlayer(UUID.fromString(uuid)) ?: return@forEach
+            displays.forEach { owner.showEntity(MahjongPlayPlugin.instance, it.textDisplay) }
         }
-        Bukkit.getOnlinePlayers()
-            .filter { op -> game.players.none { it.uuid == op.uniqueId.toString() } }
-            .forEach { display.showTo(it) }
     }
 
     private fun updateVisibility(player: MahjongPlayerBase) {
@@ -786,13 +784,13 @@ class BoardRenderer(
         backDisplays.forEach { display ->
             if (ownerBukkit != null) display.hideTo(ownerBukkit)
             otherBukkitPlayers.forEach { display.showTo(it) }
-            spectators.forEach { display.showTo(it) }
+            spectators.forEach { display.hideTo(it) }
         }
 
         ownerOnlyDisplays.forEach { display ->
             if (ownerBukkit != null) display.showTo(ownerBukkit)
             otherBukkitPlayers.forEach { display.hideTo(it) }
-            spectators.forEach { if (game.rule.spectate) display.showTo(it) else display.hideTo(it) }
+            spectators.forEach { display.showTo(it) }
         }
     }
 
@@ -823,7 +821,6 @@ class BoardRenderer(
 
             val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw)
             display.spawn()
-            showToAllViewers(display)
             revealed += display
         }
 
@@ -843,7 +840,6 @@ class BoardRenderer(
             entity.setTransformationMatrix(matrix)
             entity.billboard = Display.Billboard.CENTER
         }
-        showToAllViewers(display)
         floatingCenterDisplay = display
     }
 

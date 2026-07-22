@@ -64,6 +64,7 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         tableManager.notifyIfInterrupted(event.player.uniqueId.toString(), event.player)
+        tableManager.refreshVisibility()
     }
 
     @EventHandler
