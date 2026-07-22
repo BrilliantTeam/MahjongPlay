@@ -12,6 +12,7 @@ import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.title.Title
 import org.bukkit.Bukkit
+import org.bukkit.Sound
 import org.bukkit.entity.Player
 import java.time.Duration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -34,6 +35,7 @@ class PaperGameBridge(
         }
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
         broadcast(MESSAGE_PREFIX.append(Component.text("開局！", MJColor.GOLD)))
+        sound(Sound.BLOCK_NOTE_BLOCK_BELL, 0.7f, 1.0f)
         startHudUpdates()
         turnTimerBar.cleanup()
         turnTimerBar.show()
@@ -41,6 +43,7 @@ class PaperGameBridge(
 
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
         renderer.onRoundStart(game, round)
+        sound(Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.0f)
         val title = Title.title(
             Component.text(round.displayName(), MJColor.GOLD),
             Component.text("本場${round.honba}", MJColor.YELLOW),
@@ -51,10 +54,12 @@ class PaperGameBridge(
 
     override fun onTileDrawn(player: MahjongPlayerBase, tile: MahjongTile) {
         renderer.onTileDrawn(player, tile)
+        sound(Sound.BLOCK_BAMBOO_PLACE, 0.3f, 1.6f)
     }
 
     override fun onTileDiscarded(player: MahjongPlayerBase, tile: MahjongTile) {
         renderer.onTileDiscarded(player, tile)
+        sound(Sound.BLOCK_BAMBOO_WOOD_PLACE, 0.6f, 1.0f)
         updateHud()
     }
 
@@ -70,8 +75,14 @@ class PaperGameBridge(
         forEachPlayer { it.showTitle(title) }
     }
 
+    private fun sound(sound: Sound, volume: Float = 0.8f, pitch: Float = 1.0f) {
+        val center = renderer.tableCenter
+        ScheduleUtil.region(center, Runnable { center.world.playSound(center, sound, volume, pitch) })
+    }
+
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onChii(player, claimedTile, from)
+        sound(Sound.BLOCK_NOTE_BLOCK_HARP, 0.8f, 1.3f)
         showEventTitle(
             Component.text("吃！", MJColor.GREEN),
             Component.text(player.displayName, MJColor.AQUA)
@@ -80,6 +91,7 @@ class PaperGameBridge(
 
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
         renderer.onPon(player, claimedTile, from)
+        sound(Sound.BLOCK_NOTE_BLOCK_HARP, 0.9f, 0.9f)
         showEventTitle(
             Component.text("碰！", MJColor.BLUE),
             Component.text(player.displayName, MJColor.AQUA)
@@ -88,6 +100,7 @@ class PaperGameBridge(
 
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
         renderer.onKan(player, tile, kanType, from)
+        sound(Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.7f)
         showEventTitle(
             Component.text("槓！", MJColor.DARK_AQUA),
             Component.text(player.displayName, MJColor.AQUA)
@@ -96,6 +109,7 @@ class PaperGameBridge(
 
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
         renderer.onRiichi(player, tile)
+        sound(Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f)
         showEventTitle(
             Component.text("立直！", MJColor.LIGHT_PURPLE),
             Component.text(player.displayName, MJColor.AQUA)
@@ -106,6 +120,7 @@ class PaperGameBridge(
         ScheduleUtil.region(renderer.tableCenter, Runnable {
             renderer.revealHands(player)
         })
+        sound(Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.4f)
         showEventTitle(
             Component.text("自摸！", MJColor.GOLD),
             Component.text(player.displayName, MJColor.AQUA)
@@ -117,6 +132,7 @@ class PaperGameBridge(
         ScheduleUtil.region(renderer.tableCenter, Runnable {
             winners.forEach { renderer.revealHands(it) }
         })
+        sound(Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.0f)
         val names = winners.joinToString(", ") { it.displayName }
         showEventTitle(
             Component.text("榮和！", MJColor.RED),
@@ -131,6 +147,7 @@ class PaperGameBridge(
                 game.players.filter { it.isTenpai }.forEach { renderer.revealHands(it) }
             })
         }
+        sound(Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.6f)
         showEventTitle(
             draw.toText().color(MJColor.YELLOW),
             Component.text("流局", MJColor.GRAY)
@@ -158,6 +175,7 @@ class PaperGameBridge(
                 tableManager.registerJoinInteraction(it)
             }
             broadcast(MESSAGE_PREFIX.append(Component.text("牌局結束！", MJColor.GOLD)))
+            sound(Sound.BLOCK_NOTE_BLOCK_BELL, 0.7f, 0.8f)
             val sorted = scoreList.sortedByDescending { it.scoreOrigin }
             sorted.forEachIndexed { index, item ->
                 broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", MJColor.YELLOW))
@@ -242,6 +260,9 @@ class PaperGameBridge(
         ScheduleUtil.region(renderer.tableCenter, Runnable {
             turnTimerBar.startAction(player, behaviors, timeoutSeconds)
             renderer.spawnActionOptions(player.uuid, player.actionOptions)
+            Bukkit.getPlayer(UUID.fromString(player.uuid))?.let {
+                it.playSound(it.location, Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1.6f)
+            }
         })
     }
 
