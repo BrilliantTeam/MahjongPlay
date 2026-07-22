@@ -705,7 +705,7 @@ abstract class MahjongPlayerBase {
         tilePairsForChii: List<Pair<MahjongTile, MahjongTile>>,
         tilePairForPon: Pair<MahjongTile, MahjongTile>,
         target: ClaimTarget,
-    ): Pair<MahjongTile, MahjongTile>? = null
+    ): Pair<MahjongTile, MahjongTile>? = tile to tile
 
     open suspend fun askToPon(
         tile: MahjongTile,

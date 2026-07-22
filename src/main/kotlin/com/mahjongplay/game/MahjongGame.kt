@@ -91,9 +91,10 @@ class MahjongGame(
         }
 
 
-    fun addBot(name: String = "電腦") {
-        if (players.size >= playerCount) return
+    fun addBot(name: String = "電腦"): Boolean {
+        if (status != GameStatus.WAITING || players.size >= playerCount) return false
         players += MahjongBot(displayName = name)
+        return true
     }
 
     fun join(playerUUID: String, playerName: String): Boolean {
@@ -104,7 +105,7 @@ class MahjongGame(
     }
 
     fun leave(playerUUID: String) {
-        if (isPlaying) { end(); return }
+        if (isPlaying) end()
         val isHost = players.firstOrNull()?.uuid == playerUUID
         if (isHost) {
             val newHost = players.find { it.isRealPlayer && it.uuid != playerUUID }
@@ -145,6 +146,8 @@ class MahjongGame(
         val scoreList = players.map { ScoreItem(it.displayName, it.uuid, it.isRealPlayer, scoreOrigin = it.points, scoreChange = 0) }
         listener?.onGameEnd(this, scoreList)
         seat.clear(); clearStuffs(); round = MahjongRound()
+        players.forEach { it.ready = false }
+        players.removeAll { it is MahjongBot }
     }
 
 
@@ -374,6 +377,7 @@ class MahjongGame(
             } else {
                 player.justDrewTile = false
                 drewTile = false; needDraw = true
+                if (player is MahjongBot) delay(500)
             }
 
             val riichiSengen = if (!isHoutei && player.isRiichiable) player.askToRiichi() else null

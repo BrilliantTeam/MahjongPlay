@@ -853,7 +853,7 @@ class BoardRenderer(
     }
 
     fun clearAllDisplays() {
-        game.seat.forEach { unhighlightDiscards(it.uuid) }
+        highlightedDiscards.keys.toList().forEach { unhighlightDiscards(it) }
         handDisplays.values.flatten().forEach { it.remove() }
         handDisplays.clear()
         handOwnerDisplays.values.flatten().forEach { it.remove() }

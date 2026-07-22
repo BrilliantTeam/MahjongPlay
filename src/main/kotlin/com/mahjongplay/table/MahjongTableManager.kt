@@ -111,7 +111,7 @@ class MahjongTableManager : GameRegistry {
         val pc = session.game.rule.playerCount
         while (session.game.players.size < pc) {
             val botNum = session.game.players.count { !it.isRealPlayer } + 1
-            session.game.addBot("電腦$botNum")
+            if (!session.game.addBot("電腦$botNum")) break
         }
 
         session.table.hideActionButtons()
@@ -126,16 +126,10 @@ class MahjongTableManager : GameRegistry {
     fun leaveTable(playerUUID: String): Boolean {
         val tableId = playerToTable[playerUUID] ?: return false
         val session = tables[tableId] ?: return false
-        val wasPlaying = session.game.status == GameStatus.PLAYING
 
         session.bridge.hideBarForPlayer(playerUUID)
         session.game.leave(playerUUID)
         playerToTable.remove(playerUUID)
-
-        if (wasPlaying) {
-            session.game.players.forEach { playerToTable.remove(it.uuid) }
-            session.game.players.clear()
-        }
 
         if (session.game.realPlayers.isEmpty()) {
             session.game.players.removeAll { it is MahjongBot }
@@ -202,8 +196,7 @@ class MahjongTableManager : GameRegistry {
                     && session.game.players.size == pc
                     && session.game.players.all { it.ready }
                 ) {
-                    session.game.start()
-                    updateTableDisplay(session)
+                    startGame(session)
                 }
             }
         }
@@ -302,9 +295,9 @@ class MahjongTableManager : GameRegistry {
 
     fun loadTables(dataFolder: File) {
         this.dataFolder = dataFolder
-        loading = true
         val file = File(dataFolder, "tables.yml")
         if (!file.exists()) return
+        loading = true
         val config = YamlConfiguration.loadConfiguration(file)
         val tableList = config.getMapList("tables")
         tableList.forEach { map ->
