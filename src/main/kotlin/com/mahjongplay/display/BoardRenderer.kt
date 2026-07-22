@@ -38,6 +38,7 @@ class BoardRenderer(
 
     val handDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     val handOwnerDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
+    private val revealedDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     private val discardDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     private val fuuroDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     private val nukiDoraDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
@@ -210,17 +211,12 @@ class BoardRenderer(
 
     fun selectTileForDiscard(playerUUID: String, clickedIndex: Int): Boolean {
         val currentSelected = selectedTileIndices[playerUUID]
+        clearTileSelection(playerUUID)
 
         if (currentSelected == clickedIndex) {
-            selectedTileIndices.remove(playerUUID)
-            lowerTileAt(playerUUID, clickedIndex)
             unhighlightDiscards(playerUUID)
             clearTenpaiPreview(playerUUID)
             return true
-        }
-
-        if (currentSelected != null) {
-            lowerTileAt(playerUUID, currentSelected)
         }
 
         raiseTileAt(playerUUID, clickedIndex)
@@ -295,7 +291,7 @@ class BoardRenderer(
         val seatIndex = game.seat.indexOf(player)
         if (seatIndex < 0) return
 
-        selectedTileIndices.remove(playerUUID)
+        clearTileSelection(playerUUID)
         unhighlightDiscards(playerUUID)
 
         val cancelOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "取消", "cancel_riichi", MJColor.RED)
@@ -315,7 +311,7 @@ class BoardRenderer(
     }
 
     fun exitRiichiMode(playerUUID: String) {
-        selectedTileIndices.remove(playerUUID)
+        clearTileSelection(playerUUID)
         unhighlightDiscards(playerUUID)
 
         val ownerDisplays = handOwnerDisplays[playerUUID] ?: return
@@ -328,16 +324,11 @@ class BoardRenderer(
 
     fun selectTileForRiichi(playerUUID: String, clickedIndex: Int, tile: MahjongTile, tilePairs: List<Pair<MahjongTile, List<MahjongTile>>>): Boolean {
         val currentSelected = selectedTileIndices[playerUUID]
+        clearTileSelection(playerUUID)
 
         if (currentSelected == clickedIndex) {
-            selectedTileIndices.remove(playerUUID)
-            lowerTileAt(playerUUID, clickedIndex)
             unhighlightDiscards(playerUUID)
             return true
-        }
-
-        if (currentSelected != null) {
-            lowerTileAt(playerUUID, currentSelected)
         }
 
         raiseTileAt(playerUUID, clickedIndex)
@@ -362,6 +353,10 @@ class BoardRenderer(
         }
 
         return false
+    }
+
+    private fun clearTileSelection(playerUUID: String) {
+        selectedTileIndices.remove(playerUUID)?.let { lowerTileAt(playerUUID, it) }
     }
 
     private fun raiseTileAt(playerUUID: String, index: Int) {
@@ -798,10 +793,10 @@ class BoardRenderer(
         val seatIndex = game.seat.indexOf(player)
         if (seatIndex < 0) return
 
-        handDisplays[player.uuid]?.forEach { it.remove() }
-        handDisplays[player.uuid]?.clear()
-        handOwnerDisplays[player.uuid]?.forEach { it.remove() }
-        handOwnerDisplays[player.uuid]?.clear()
+        clearTileSelection(player.uuid)
+        handDisplays.remove(player.uuid)?.forEach { it.remove() }
+        handOwnerDisplays.remove(player.uuid)?.forEach { it.remove() }
+        revealedDisplays.remove(player.uuid)?.forEach { it.remove() }
 
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
@@ -824,7 +819,7 @@ class BoardRenderer(
             revealed += display
         }
 
-        handDisplays[player.uuid] = revealed.toMutableList()
+        revealedDisplays[player.uuid] = revealed
     }
 
     private fun spawnFloatingCenterTile(tile: MahjongTile) {
@@ -854,6 +849,8 @@ class BoardRenderer(
         handDisplays.clear()
         handOwnerDisplays.values.flatten().forEach { it.remove() }
         handOwnerDisplays.clear()
+        revealedDisplays.values.flatten().forEach { it.remove() }
+        revealedDisplays.clear()
         discardDisplays.values.flatten().forEach { it.remove() }
         discardDisplays.clear()
         fuuroDisplays.values.flatten().forEach { it.remove() }
