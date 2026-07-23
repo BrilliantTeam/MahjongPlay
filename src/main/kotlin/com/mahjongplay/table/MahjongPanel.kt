@@ -88,6 +88,17 @@ object MahjongPanel {
         }
     }
 
+    fun manage(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
+        val uuid = player.uniqueId.toString()
+        player.sendMessage(MESSAGE_PREFIX.append(Component.text("管理 ${session.humanId}", MJColor.GOLD).decorate(TextDecoration.BOLD)))
+        player.sendMessage(MESSAGE_PREFIX.append(statusLine(session)))
+        player.sendMessage(
+            MESSAGE_PREFIX.append(
+                manageButtons(manager, session, seated = manager.getSessionForPlayer(uuid) != null, own = session.ownerUUID == uuid)
+            )
+        )
+    }
+
     private fun statusLine(session: MahjongTableSession): Component {
         val game = session.game
         val status = if (game.status == GameStatus.WAITING) "等待中" else "進行中"

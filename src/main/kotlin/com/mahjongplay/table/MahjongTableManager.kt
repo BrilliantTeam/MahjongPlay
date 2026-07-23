@@ -333,9 +333,10 @@ class MahjongTableManager : GameRegistry {
         loading = false
     }
 
-    fun isProtectedBlock(loc: org.bukkit.Location): Boolean {
-        return tables.values.any { it.table.isProtectedBlock(loc) }
-    }
+    fun getSessionByBlock(loc: org.bukkit.Location): MahjongTableSession? =
+        tables.values.firstOrNull { it.table.isProtectedBlock(loc) }
+
+    fun isProtectedBlock(loc: org.bukkit.Location): Boolean = getSessionByBlock(loc) != null
 
     fun breakSeat(loc: Location, player: org.bukkit.entity.Player): Boolean {
         val session = tables.values.firstOrNull { it.table.seatIndexAt(loc) >= 0 } ?: return false

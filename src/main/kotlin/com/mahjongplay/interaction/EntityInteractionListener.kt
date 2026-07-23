@@ -41,6 +41,18 @@ class EntityInteractionListener(
         MahjongPanel.sendModePrompt(gameManager, player, center)
     }
 
+    @EventHandler(ignoreCancelled = true)
+    fun onManageClick(event: PlayerInteractEvent) {
+        if (event.action != Action.RIGHT_CLICK_BLOCK || event.hand != EquipmentSlot.HAND) return
+        val player = event.player
+        if (!player.isSneaking) return
+        val block = event.clickedBlock ?: return
+        val session = gameManager.getSessionByBlock(block.location) ?: return
+        if (!gameManager.canManage(session, player)) return
+        event.isCancelled = true
+        MahjongPanel.manage(gameManager, player, session)
+    }
+
     @EventHandler
     fun onInteractEntity(event: PlayerInteractEntityEvent) {
         val clickedEntity = event.rightClicked
