@@ -238,6 +238,11 @@ class MahjongTable(
         return placedBlocks.any { it.blockX == loc.blockX && it.blockY == loc.blockY && it.blockZ == loc.blockZ && it.world == loc.world }
     }
 
+    fun respawnDisplays() {
+        removeEntities()
+        spawnJoinDisplay()
+    }
+
     fun removeEntities() {
         joinTextDisplay?.remove(); joinTextDisplay = null
         joinInteraction?.remove(); joinInteraction = null

@@ -338,6 +338,26 @@ class MahjongTableManager : GameRegistry {
 
     fun isProtectedBlock(loc: org.bukkit.Location): Boolean = getSessionByBlock(loc) != null
 
+    fun respawnTablesIn(chunk: org.bukkit.Chunk) {
+        tables.values.forEach { session ->
+            if (session.center.world == chunk.world &&
+                (session.center.blockX shr 4) == chunk.x &&
+                (session.center.blockZ shr 4) == chunk.z
+            ) respawnSession(session)
+        }
+    }
+
+    private fun respawnSession(session: MahjongTableSession) {
+        ScheduleUtil.region(session.center) {
+            val join = session.table.joinInteraction
+            if (tables.containsKey(session.tableId) && (join == null || !join.isValid)) {
+                session.renderer.clearAllDisplays()
+                session.table.respawnDisplays()
+                registerJoinInteraction(session)
+            }
+        }
+    }
+
     fun breakSeat(loc: Location, player: org.bukkit.entity.Player): Boolean {
         val session = tables.values.firstOrNull { it.table.seatIndexAt(loc) >= 0 } ?: return false
         if (!canManage(session, player)) return false

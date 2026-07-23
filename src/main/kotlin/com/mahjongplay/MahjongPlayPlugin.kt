@@ -10,6 +10,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.plugin.java.JavaPlugin
 import fr.skytasul.glowingentities.GlowingEntities
 
@@ -71,6 +72,11 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val uuid = event.player.uniqueId.toString()
         tableManager.leaveTable(uuid)
+    }
+
+    @EventHandler
+    fun onChunkLoad(event: ChunkLoadEvent) {
+        tableManager.respawnTablesIn(event.chunk)
     }
 
     @EventHandler
