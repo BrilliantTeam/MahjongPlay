@@ -216,7 +216,7 @@ object MahjongPanel {
         game.addBot("電腦$botNum")
         manager.updateTableDisplay(session)
         manager.checkAutoStart(session)
-        open(manager, player)
+        manage(manager, player, session)
     }
 
     private fun sendKickPrompt(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
@@ -240,7 +240,7 @@ object MahjongPanel {
     private fun kick(manager: MahjongTableManager, player: Player, session: MahjongTableSession, index: Int) {
         if (!guard(manager, session, player, "mahjongplay.command.kick")) return
         val error = manager.kickSeat(session, index)
-        if (error != null) player.msg(error, MJColor.RED) else open(manager, player)
+        if (error != null) player.msg(error, MJColor.RED) else manage(manager, player, session)
     }
 
     private fun destroy(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
