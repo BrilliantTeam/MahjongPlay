@@ -181,7 +181,7 @@ object MahjongPanel {
             manager.registerJoinInteraction(session)
         }
         player.msg("已建立 ${session.humanId}，只有你能管理這張牌桌", MJColor.GREEN)
-        open(manager, player)
+        manage(manager, player, session)
     }
 
     private fun placementError(player: Player, center: Location, playerCount: Int): String? {
@@ -293,7 +293,7 @@ object MahjongPanel {
         if (manager.joinTable(session.tableId, player.uniqueId.toString(), player.name)) {
             player.msg("已加入 ${session.humanId}", MJColor.GREEN)
             manager.checkAutoStart(session)
-            open(manager, player)
+            manage(manager, player, session)
         } else {
             player.msg("無法加入（可能已滿或你已在其他牌桌）", MJColor.RED)
         }
