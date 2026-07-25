@@ -70,6 +70,36 @@ class MahjongTableManager : GameRegistry {
         return session
     }
 
+    fun changeSettings(session: MahjongTableSession, gameLength: MahjongRule.GameLength, playerCount: Int, startingPoints: Int): String? {
+        if (session.game.status != GameStatus.WAITING) return "牌局進行中無法變更設定"
+        if (session.game.players.isNotEmpty()) return "請先清空座位再變更設定"
+
+        session.bridge.cleanup()
+        session.table.joinInteraction?.uniqueId?.let { joinInteractionToTable.remove(it) }
+        session.table.startInteraction?.uniqueId?.let { startInteractionToTable.remove(it) }
+        session.table.readyInteraction?.uniqueId?.let { readyInteractionToTable.remove(it) }
+
+        val modeText = if (gameLength == MahjongRule.GameLength.TWO_WIND && playerCount == 3) "三麻" else gameLength.displayText
+        val tableNum = session.humanId.substringAfterLast("]").removeSuffix("號桌")
+        val game = MahjongGame(tableId = session.tableId, rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
+        val renderer = BoardRenderer(game, session.center, session.quarter)
+        val bridge = PaperGameBridge(game, renderer, this)
+        game.listener = bridge
+        val table = MahjongTable(session.center, modeText, playerCount, emptySet(), session.quarter)
+
+        val newSession = session.copy(game = game, renderer = renderer, bridge = bridge, table = table, humanId = "[$modeText]${tableNum}號桌")
+        tables[session.tableId] = newSession
+
+        ScheduleUtil.region(session.center) {
+            session.table.removeEntities()
+            session.table.clearSeats()
+            table.spawn()
+            registerJoinInteraction(newSession)
+        }
+        autoSave()
+        return null
+    }
+
     fun registerJoinInteraction(session: MahjongTableSession) {
         val interactionUUID = session.table.joinInteraction?.uniqueId ?: return
         joinInteractionToTable[interactionUUID] = session.tableId

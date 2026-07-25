@@ -106,6 +106,7 @@ class MahjongTable(
                 center.blockY.toDouble(),
                 (center.blockZ + dz).toDouble()
             )
+            if (!slabLoc.block.isReplaceable) return@forEachIndexed
             slabLoc.block.type = Material.OAK_SLAB
             placedBlocks += slabLoc
         }
@@ -266,6 +267,13 @@ class MahjongTable(
 
     fun clearFootprint() {
         footprint(center, playerCount, quarter).forEach { it.block.setType(Material.AIR, false) }
+    }
+
+    fun clearSeats() {
+        seatOffsets.forEach { (dx, dz) ->
+            Location(center.world, (center.blockX + dx).toDouble(), center.blockY.toDouble(), (center.blockZ + dz).toDouble())
+                .block.setType(Material.AIR, false)
+        }
     }
 
     fun respawnDisplays() {

@@ -59,6 +59,28 @@ object MahjongPanel {
         player.sendMessage(msg)
     }
 
+    private fun sendChangeModePrompt(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
+        if (!guard(manager, session, player, "mahjongplay.command.mode")) return
+        var msg = MESSAGE_PREFIX.append(Component.text("變更 ${session.humanId} 的模式：", MJColor.GOLD))
+        MODES.forEach { mode ->
+            msg = msg.append(Component.space())
+                .append(button("[${mode.label}]", MJColor.AQUA, ONCE, mode.hint) { changeMode(manager, it, session, mode) })
+        }
+        player.sendMessage(msg)
+    }
+
+    private fun changeMode(manager: MahjongTableManager, player: Player, session: MahjongTableSession, mode: Mode) {
+        if (!guard(manager, session, player, "mahjongplay.command.mode")) return
+        val error = manager.changeSettings(session, mode.length, mode.playerCount, mode.startingPoints)
+        if (error != null) {
+            player.msg(error, MJColor.RED)
+            return
+        }
+        val updated = manager.getSession(session.tableId) ?: return
+        player.msg("已變更為 ${updated.humanId}", MJColor.GREEN)
+        manage(manager, player, updated)
+    }
+
     fun open(manager: MahjongTableManager, player: Player, showAll: Boolean = false) {
         val uuid = player.uniqueId.toString()
         player.sendMessage(MESSAGE_PREFIX.append(Component.text("麻將面板", MJColor.GOLD).decorate(TextDecoration.BOLD)))
@@ -128,6 +150,8 @@ object MahjongPanel {
                 .append(button("[電腦]", MJColor.GREEN, REUSABLE, "在空位加入一個電腦對手") { addBot(manager, it, session) })
                 .append(Component.space())
                 .append(button("[踢人]", MJColor.YELLOW, REUSABLE, "展開座位清單，選擇要踢出的對象") { sendKickPrompt(manager, it, session) })
+                .append(Component.space())
+                .append(button("[模式]", MJColor.LIGHT_PURPLE, REUSABLE, "變更牌局模式與人數，不用拆桌重蓋") { sendChangeModePrompt(manager, it, session) })
                 .append(Component.space())
         }
         return line.append(button("[規則]", MJColor.AQUA, REUSABLE, "查看這張牌桌的完整規則") { sendRules(it, session) })
