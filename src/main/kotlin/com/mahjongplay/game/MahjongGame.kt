@@ -126,7 +126,7 @@ class MahjongGame(
     fun start() {
         if (players.size != playerCount || !players.all { it.ready }) return
         status = GameStatus.PLAYING
-        seat = players.toMutableList().apply { shuffle() }
+        seat = players.toMutableList()
         round = rule.length.getStartingRound()
         players.forEach {
             it.points = rule.startingPoints

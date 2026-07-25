@@ -16,15 +16,23 @@ class MahjongTable(
     val center: Location,
     val gameLengthText: String = "半莊",
     val playerCount: Int = 4,
-    initialRemovedSeats: Set<Int> = emptySet()
+    initialRemovedSeats: Set<Int> = emptySet(),
+    val quarter: Int = 0,
 ) {
 
     companion object {
+        fun rotOffset(dx: Int, dz: Int, quarter: Int): Pair<Int, Int> = when (quarter and 3) {
+            1 -> -dz to dx
+            2 -> -dx to -dz
+            3 -> dz to -dx
+            else -> dx to dz
+        }
+
         fun seatOffsets(playerCount: Int): List<Pair<Int, Int>> =
             if (playerCount == 3) listOf(2 to 0, -2 to 0, 0 to 2)
             else listOf(2 to 0, 0 to -2, -2 to 0, 0 to 2)
 
-        fun footprint(center: Location, playerCount: Int): List<Location> {
+        fun footprint(center: Location, playerCount: Int, quarter: Int = 0): List<Location> {
             val world = center.world
             val cx = center.blockX
             val cy = center.blockY
@@ -37,7 +45,8 @@ class MahjongTable(
                 }
             }
             seatOffsets(playerCount).forEach { (dx, dz) ->
-                blocks += Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble())
+                val (rdx, rdz) = rotOffset(dx, dz, quarter)
+                blocks += Location(world, (cx + rdx).toDouble(), cy.toDouble(), (cz + rdz).toDouble())
             }
             return blocks
         }
@@ -46,6 +55,8 @@ class MahjongTable(
     private val placedBlocks = mutableListOf<Location>()
 
     val removedSeats = initialRemovedSeats.toMutableSet()
+
+    private val seatOffsets = seatOffsets(playerCount).map { rotOffset(it.first, it.second, quarter) }
 
     var joinTextDisplay: TextDisplay? = null
         private set
@@ -87,7 +98,7 @@ class MahjongTable(
     }
 
     private fun spawnSeatSlabs() {
-        seatOffsets(playerCount).forEachIndexed { index, (dx, dz) ->
+        seatOffsets.forEachIndexed { index, (dx, dz) ->
             if (index in removedSeats) return@forEachIndexed
             val slabLoc = Location(
                 center.world,
@@ -102,14 +113,14 @@ class MahjongTable(
 
     fun seatIndexAt(loc: Location): Int {
         if (loc.world != center.world || loc.blockY != center.blockY) return -1
-        return seatOffsets(playerCount).indexOfFirst { (dx, dz) ->
+        return seatOffsets.indexOfFirst { (dx, dz) ->
             center.blockX + dx == loc.blockX && center.blockZ + dz == loc.blockZ
         }
     }
 
     fun removeSeat(index: Int) {
         removedSeats += index
-        val (dx, dz) = seatOffsets(playerCount)[index]
+        val (dx, dz) = seatOffsets[index]
         placedBlocks.removeAll {
             it.blockX == center.blockX + dx && it.blockY == center.blockY && it.blockZ == center.blockZ + dz
         }

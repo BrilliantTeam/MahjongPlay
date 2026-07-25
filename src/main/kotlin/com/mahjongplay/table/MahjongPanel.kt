@@ -166,7 +166,8 @@ object MahjongPanel {
             player.msg("這裡太靠近其他牌桌了", MJColor.RED)
             return
         }
-        val blocked = placementError(player, center, mode.playerCount)
+        val quarter = facingQuarter(player)
+        val blocked = placementError(player, center, mode.playerCount, quarter)
         if (blocked != null) {
             player.msg(blocked, MJColor.RED)
             return
@@ -174,7 +175,7 @@ object MahjongPanel {
 
         val session = manager.createTable(
             center, player.uniqueId.toString(), player.name,
-            mode.length, mode.playerCount, mode.startingPoints
+            mode.length, mode.playerCount, mode.startingPoints, quarter = quarter
         )
         ScheduleUtil.region(center) {
             session.table.spawn()
@@ -184,8 +185,16 @@ object MahjongPanel {
         manage(manager, player, session)
     }
 
-    private fun placementError(player: Player, center: Location, playerCount: Int): String? {
-        val blocks = MahjongTable.footprint(center, playerCount)
+    private fun facingQuarter(player: Player): Int = when (player.facing) {
+        org.bukkit.block.BlockFace.NORTH -> 1
+        org.bukkit.block.BlockFace.EAST -> 2
+        org.bukkit.block.BlockFace.SOUTH -> 3
+        org.bukkit.block.BlockFace.WEST -> 0
+        else -> 0
+    }
+
+    private fun placementError(player: Player, center: Location, playerCount: Int, quarter: Int = 0): String? {
+        val blocks = MahjongTable.footprint(center, playerCount, quarter)
         if (residenceAvailable && blocks.any { !ResidenceHook.canBuild(player, it) }) {
             return "你在這塊領地沒有建築權限"
         }

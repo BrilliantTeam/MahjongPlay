@@ -34,6 +34,7 @@ data class ActionDisplay(
 class BoardRenderer(
     val game: MahjongGame,
     val tableCenter: Location,
+    val quarter: Int = 0,
 ) : GameEventListener {
 
     val handDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
@@ -72,26 +73,40 @@ class BoardRenderer(
         return seatIndex
     }
 
-    private fun seatYaw(seatIndex: Int): Float = when (physicalSeatIndex(seatIndex)) {
-        0 -> 90f
-        3 -> 0f
-        2 -> -90f
-        else -> 180f
+    private fun rot(v: DoubleArray): DoubleArray = when (quarter and 3) {
+        1 -> doubleArrayOf(-v[1], v[0])
+        2 -> doubleArrayOf(-v[0], -v[1])
+        3 -> doubleArrayOf(v[1], -v[0])
+        else -> v
     }
 
-    private fun seatDirection(seatIndex: Int): DoubleArray = when (physicalSeatIndex(seatIndex)) {
-        0 -> doubleArrayOf(1.0, 0.0)
-        3 -> doubleArrayOf(0.0, 1.0)
-        2 -> doubleArrayOf(-1.0, 0.0)
-        else -> doubleArrayOf(0.0, -1.0)
+    private fun seatYaw(seatIndex: Int): Float {
+        val base = when (physicalSeatIndex(seatIndex)) {
+            0 -> 90f
+            3 -> 0f
+            2 -> -90f
+            else -> 180f
+        }
+        return base - (quarter and 3) * 90f
     }
 
-    private fun seatPerpendicular(seatIndex: Int): DoubleArray = when (physicalSeatIndex(seatIndex)) {
-        0 -> doubleArrayOf(0.0, 1.0)
-        3 -> doubleArrayOf(-1.0, 0.0)
-        2 -> doubleArrayOf(0.0, -1.0)
-        else -> doubleArrayOf(1.0, 0.0)
-    }
+    private fun seatDirection(seatIndex: Int): DoubleArray = rot(
+        when (physicalSeatIndex(seatIndex)) {
+            0 -> doubleArrayOf(1.0, 0.0)
+            3 -> doubleArrayOf(0.0, 1.0)
+            2 -> doubleArrayOf(-1.0, 0.0)
+            else -> doubleArrayOf(0.0, -1.0)
+        }
+    )
+
+    private fun seatPerpendicular(seatIndex: Int): DoubleArray = rot(
+        when (physicalSeatIndex(seatIndex)) {
+            0 -> doubleArrayOf(0.0, 1.0)
+            3 -> doubleArrayOf(-1.0, 0.0)
+            2 -> doubleArrayOf(0.0, -1.0)
+            else -> doubleArrayOf(1.0, 0.0)
+        }
+    )
 
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
         ScheduleUtil.region(tableCenter, Runnable {

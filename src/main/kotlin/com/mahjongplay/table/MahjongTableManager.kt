@@ -39,9 +39,9 @@ class MahjongTableManager : GameRegistry {
     private var dataFolder: File? = null
     private var loading = false
 
-    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000, removedSeats: Set<Int> = emptySet()): MahjongTableSession {
+    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000, removedSeats: Set<Int> = emptySet(), quarter: Int = 0): MahjongTableSession {
         val game = MahjongGame(rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
-        val renderer = BoardRenderer(game, center)
+        val renderer = BoardRenderer(game, center, quarter)
         val bridge = PaperGameBridge(game, renderer, this)
         game.listener = bridge
 
@@ -57,10 +57,11 @@ class MahjongTableManager : GameRegistry {
             renderer = renderer,
             bridge = bridge,
             center = center,
-            table = MahjongTable(center, modeText, playerCount, removedSeats),
+            table = MahjongTable(center, modeText, playerCount, removedSeats, quarter),
             humanId = humanId,
             ownerUUID = creatorUUID,
-            ownerName = creatorName
+            ownerName = creatorName,
+            quarter = quarter
         )
 
         tables[session.tableId] = session
@@ -275,7 +276,8 @@ class MahjongTableManager : GameRegistry {
                 "playerCount" to session.game.rule.playerCount,
                 "startingPoints" to session.game.rule.startingPoints,
                 "owner" to session.ownerUUID,
-                "ownerName" to session.ownerName
+                "ownerName" to session.ownerName,
+                "quarter" to session.quarter
             )
             if (session.game.status == GameStatus.PLAYING) {
                 map["playingPlayers"] = session.game.realPlayers.map { it.uuid }
@@ -322,9 +324,10 @@ class MahjongTableManager : GameRegistry {
 
             val removedSeats = (map["removedSeats"] as? List<*>)
                 ?.mapNotNull { (it as? Number)?.toInt() }?.toSet() ?: emptySet()
+            val quarter = (map["quarter"] as? Number)?.toInt() ?: 0
 
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
-            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats)
+            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats, quarter)
             ScheduleUtil.region(center) {
                 session.table.spawn()
                 registerJoinInteraction(session)
@@ -397,5 +400,6 @@ data class MahjongTableSession(
     val table: MahjongTable,
     val humanId: String,
     val ownerUUID: String,
-    val ownerName: String
+    val ownerName: String,
+    val quarter: Int = 0
 )
