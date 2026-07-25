@@ -329,8 +329,13 @@ class MahjongTableManager : GameRegistry {
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
             val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats, quarter)
             ScheduleUtil.region(center) {
-                session.table.spawn()
-                registerJoinInteraction(session)
+                if (session.table.isIntact()) {
+                    session.table.spawn()
+                    registerJoinInteraction(session)
+                } else {
+                    session.table.clearFootprint()
+                    destroyTable(session.tableId)
+                }
             }
         }
         loading = false
@@ -352,8 +357,14 @@ class MahjongTableManager : GameRegistry {
 
     private fun respawnSession(session: MahjongTableSession) {
         ScheduleUtil.region(session.center) {
+            if (!tables.containsKey(session.tableId)) return@region
+            if (!session.table.isIntact()) {
+                session.table.clearFootprint()
+                destroyTable(session.tableId)
+                return@region
+            }
             val join = session.table.joinInteraction
-            if (tables.containsKey(session.tableId) && (join == null || !join.isValid)) {
+            if (join == null || !join.isValid) {
                 session.renderer.clearAllDisplays()
                 session.table.respawnDisplays()
                 registerJoinInteraction(session)

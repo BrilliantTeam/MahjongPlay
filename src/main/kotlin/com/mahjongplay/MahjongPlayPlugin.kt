@@ -8,6 +8,8 @@ import com.mahjongplay.util.ScheduleUtil
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.block.BlockPistonExtendEvent
+import org.bukkit.event.block.BlockPistonRetractEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.world.ChunkLoadEvent
@@ -85,6 +87,20 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
         if (tableManager.breakSeat(event.block.location, event.player)) {
             event.isDropItems = false
         } else {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    fun onPistonExtend(event: BlockPistonExtendEvent) {
+        if (event.blocks.any { tableManager.isProtectedBlock(it.location) || tableManager.isProtectedBlock(it.getRelative(event.direction).location) }) {
+            event.isCancelled = true
+        }
+    }
+
+    @EventHandler
+    fun onPistonRetract(event: BlockPistonRetractEvent) {
+        if (event.blocks.any { tableManager.isProtectedBlock(it.location) || tableManager.isProtectedBlock(it.getRelative(event.direction).location) }) {
             event.isCancelled = true
         }
     }

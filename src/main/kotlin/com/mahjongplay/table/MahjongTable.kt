@@ -249,6 +249,25 @@ class MahjongTable(
         return placedBlocks.any { it.blockX == loc.blockX && it.blockY == loc.blockY && it.blockZ == loc.blockZ && it.world == loc.world }
     }
 
+    fun isIntact(): Boolean {
+        val world = center.world
+        val cx = center.blockX
+        val cy = center.blockY
+        val cz = center.blockZ
+        for (dx in -1..1) {
+            for (dz in -1..1) {
+                if (Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble()).block.type != Material.OAK_FENCE) return false
+                val expectedTop = if (dx == 0 && dz == 0) Material.LIGHT_BLUE_CARPET else Material.GREEN_CARPET
+                if (Location(world, (cx + dx).toDouble(), (cy + 1).toDouble(), (cz + dz).toDouble()).block.type != expectedTop) return false
+            }
+        }
+        return true
+    }
+
+    fun clearFootprint() {
+        footprint(center, playerCount, quarter).forEach { it.block.setType(Material.AIR, false) }
+    }
+
     fun respawnDisplays() {
         removeEntities()
         spawnJoinDisplay()
