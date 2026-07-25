@@ -154,6 +154,12 @@ class MahjongTableManager : GameRegistry {
         return null
     }
 
+    fun abortGame(session: MahjongTableSession): String? {
+        if (session.game.status != GameStatus.PLAYING) return "牌局目前沒有進行中"
+        session.game.end()
+        return null
+    }
+
     fun leaveTable(playerUUID: String): Boolean {
         val tableId = playerToTable[playerUUID] ?: return false
         val session = tables[tableId] ?: return false

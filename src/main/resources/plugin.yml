@@ -41,6 +41,9 @@ permissions:
   mahjongplay.command.mode:
     description: 允許變更自己牌桌的模式與人數
     default: true
+  mahjongplay.command.abort:
+    description: 允許強制終止自己牌桌進行中的牌局
+    default: true
   mahjongplay.command.action:
     description: 允許執行麻將操作
     default: true

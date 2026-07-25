@@ -153,6 +153,9 @@ object MahjongPanel {
                 .append(Component.space())
                 .append(button("[模式]", MJColor.LIGHT_PURPLE, REUSABLE, "變更牌局模式與人數，不用拆桌重蓋") { sendChangeModePrompt(manager, it, session) })
                 .append(Component.space())
+        } else {
+            line = line.append(button("[終止]", MJColor.RED, REUSABLE, "強制結束目前進行中的牌局，牌桌保留") { abort(manager, it, session) })
+                .append(Component.space())
         }
         return line.append(button("[規則]", MJColor.AQUA, REUSABLE, "查看這張牌桌的完整規則") { sendRules(it, session) })
             .append(Component.space())
@@ -273,6 +276,12 @@ object MahjongPanel {
     private fun kick(manager: MahjongTableManager, player: Player, session: MahjongTableSession, index: Int) {
         if (!guard(manager, session, player, "mahjongplay.command.kick")) return
         val error = manager.kickSeat(session, index)
+        if (error != null) player.msg(error, MJColor.RED) else manage(manager, player, session)
+    }
+
+    private fun abort(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
+        if (!guard(manager, session, player, "mahjongplay.command.abort")) return
+        val error = manager.abortGame(session)
         if (error != null) player.msg(error, MJColor.RED) else manage(manager, player, session)
     }
 
