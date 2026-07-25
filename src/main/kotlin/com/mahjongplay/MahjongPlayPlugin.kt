@@ -50,6 +50,10 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
             tableManager.loadTables(dataFolder)
         }
 
+        ScheduleUtil.globalTimer(100L, 100L) {
+            tableManager.checkPlayerDistances()
+        }
+
         logger.info("MahjongCraft v${pluginMeta.version} enabled!")
     }
 

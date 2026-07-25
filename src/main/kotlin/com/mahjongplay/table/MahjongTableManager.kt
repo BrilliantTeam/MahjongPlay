@@ -25,6 +25,7 @@ class MahjongTableManager : GameRegistry {
 
     companion object {
         const val ADMIN_PERMISSION = "mahjongplay.admin"
+        private const val MAX_TABLE_DISTANCE = 20.0
     }
 
     private val tables = ConcurrentHashMap<UUID, MahjongTableSession>()
@@ -428,6 +429,18 @@ class MahjongTableManager : GameRegistry {
         tables.values.forEach { session ->
             if (session.game.status != GameStatus.PLAYING) return@forEach
             ScheduleUtil.region(session.center) { session.renderer.refreshVisibility() }
+        }
+    }
+
+    fun checkPlayerDistances() {
+        tables.values.forEach { session ->
+            session.game.realPlayers.forEach { seat ->
+                val player = Bukkit.getPlayer(UUID.fromString(seat.uuid))
+                if (player != null && (player.world != session.center.world || player.location.distanceSquared(session.center) > MAX_TABLE_DISTANCE * MAX_TABLE_DISTANCE)) {
+                    leaveTable(seat.uuid)
+                    player.msg("你距離牌桌太遠，已自動離開", MJColor.RED)
+                }
+            }
         }
     }
 
