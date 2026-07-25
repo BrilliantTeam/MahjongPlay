@@ -270,10 +270,9 @@ class MahjongTable(
     }
 
     fun clearSeats() {
-        seatOffsets.forEach { (dx, dz) ->
-            Location(center.world, (center.blockX + dx).toDouble(), center.blockY.toDouble(), (center.blockZ + dz).toDouble())
-                .block.setType(Material.AIR, false)
-        }
+        val seatCells = seatOffsets.map { (dx, dz) -> (center.blockX + dx) to (center.blockZ + dz) }
+        placedBlocks.filter { it.blockY == center.blockY && (it.blockX to it.blockZ) in seatCells }
+            .forEach { it.block.setType(Material.AIR, false) }
     }
 
     fun respawnDisplays() {

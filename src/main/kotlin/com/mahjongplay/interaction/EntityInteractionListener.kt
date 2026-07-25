@@ -46,6 +46,10 @@ class EntityInteractionListener(
         if (event.action != Action.RIGHT_CLICK_BLOCK || event.hand != EquipmentSlot.HAND) return
         val player = event.player
         if (!player.isSneaking) return
+        val item = event.item ?: return
+        if (item.type != Material.PAPER) return
+        val meta = item.itemMeta ?: return
+        if (!meta.hasCustomModelData() || meta.customModelData != MahjongPanel.WAND_MODEL_DATA) return
         val block = event.clickedBlock ?: return
         val session = gameManager.getSessionByBlock(block.location) ?: return
         if (!gameManager.canManage(session, player)) return
