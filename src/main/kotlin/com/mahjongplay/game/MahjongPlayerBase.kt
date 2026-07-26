@@ -226,7 +226,8 @@ abstract class MahjongPlayerBase {
                         if (winnable) this += mjTile
                     }
                 }
-                if (calculatedMachi != machiTiles) {
+                val preAnkanMachi = calculateMachi(hands = hands.toMutableList().apply { remove(it) })
+                if (calculatedMachi != preAnkanMachi) {
                     this -= it
                 } else {
                     val otherTiles = hands.toIntArray()
