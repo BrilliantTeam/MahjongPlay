@@ -505,6 +505,7 @@ class MahjongGame(
 
         delay(3000)
         if (!isPlaying) return
+        if (players.any { it.points < 0 }) { end(); return }
 
         if (!round.isAllLast(rule)) {
             if (dealerRemaining) round.honba++ else round.nextRound(playerCount)
