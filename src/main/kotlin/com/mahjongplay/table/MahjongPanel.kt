@@ -5,10 +5,8 @@ import com.mahjongplay.model.MahjongRule
 import com.mahjongplay.util.MESSAGE_PREFIX
 import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.msg
-import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
-import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.event.HoverEvent
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextColor
@@ -371,6 +369,6 @@ object MahjongPanel {
     ): Component = Component.text(label, color)
         .hoverEvent(HoverEvent.showText(Component.text(hover, MJColor.YELLOW)))
         .clickEvent(
-            ClickEvent.callback(ClickCallback<Audience> { audience -> (audience as? Player)?.let(action) }, options)
+            ClickActions.create(options, action)
         )
 }

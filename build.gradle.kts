@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
 
     compileOnly(files("libs/Residence5.1.6.2.jar"))
 
@@ -33,7 +33,7 @@ dependencies {
     implementation("fr.skytasul:glowingentities:1.4.10")
 
     testImplementation(kotlin("test"))
-    testImplementation("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    testImplementation("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
 }
 
 tasks.test { useJUnitPlatform() }
