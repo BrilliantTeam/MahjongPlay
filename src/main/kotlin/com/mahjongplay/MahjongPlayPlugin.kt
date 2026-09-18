@@ -1,6 +1,5 @@
 package com.mahjongplay
 
-import com.mahjongplay.table.ClickActions
 import com.mahjongplay.interaction.EntityInteractionListener
 import com.mahjongplay.table.GSitHook
 import com.mahjongplay.table.MahjongCommand
@@ -43,7 +42,6 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
 
         server.pluginManager.registerEvents(EntityInteractionListener(tableManager), this)
         server.pluginManager.registerEvents(this, this)
-        server.pluginManager.registerEvents(ClickActions, this)
         if (server.pluginManager.isPluginEnabled("GSit")) {
             server.pluginManager.registerEvents(GSitHook(tableManager), this)
         }
