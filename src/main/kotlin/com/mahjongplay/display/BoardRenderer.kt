@@ -272,14 +272,14 @@ class BoardRenderer(
         if (entity == null || viewer == null) return
         val color = if (riichi) org.bukkit.ChatColor.RED else org.bukkit.ChatColor.YELLOW
         try {
-            MahjongPlayPlugin.instance.glowingEntities.setGlowing(entity, viewer, color)
+            MahjongPlayPlugin.instance.glowingEntities?.setGlowing(entity, viewer, color)
         } catch (_: ReflectiveOperationException) {}
     }
 
     private fun unglow(entity: org.bukkit.entity.Entity?, viewer: Player?) {
         if (entity == null || viewer == null) return
         try {
-            MahjongPlayPlugin.instance.glowingEntities.unsetGlowing(entity, viewer)
+            MahjongPlayPlugin.instance.glowingEntities?.unsetGlowing(entity, viewer)
         } catch (_: ReflectiveOperationException) {}
     }
 

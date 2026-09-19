@@ -30,7 +30,7 @@ dependencies {
 
     implementation("com.github.mahjong4j:mahjong4j:0.3.2")
 
-    implementation("fr.skytasul:glowingentities:1.4.10")
+    implementation("fr.skytasul:glowingentities:2.0.1")
 
     testImplementation(kotlin("test"))
     testImplementation("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")

@@ -26,12 +26,17 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     lateinit var tableManager: MahjongTableManager
         private set
 
-    lateinit var glowingEntities: GlowingEntities
+    var glowingEntities: GlowingEntities? = null
         private set
 
     override fun onEnable() {
         instance = this
-        glowingEntities = GlowingEntities(this)
+        glowingEntities = try {
+            GlowingEntities(this)
+        } catch (error: Throwable) {
+            logger.warning("Glowing Entities 無法在此伺服器版本啟用，麻將桌將不會有發光提示：" + error.message)
+            null
+        }
         tableManager = MahjongTableManager()
 
         getCommand("mahjong")?.let {
@@ -58,9 +63,7 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
-        if (::glowingEntities.isInitialized) {
-            glowingEntities.disable()
-        }
+        glowingEntities?.disable()
         if (::tableManager.isInitialized) {
             tableManager.saveTables(dataFolder)
             tableManager.shutdown()
