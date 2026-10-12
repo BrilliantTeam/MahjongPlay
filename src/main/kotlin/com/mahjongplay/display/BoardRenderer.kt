@@ -176,7 +176,8 @@ class BoardRenderer(
         val backList = handDisplays.getOrPut(player.uuid) { mutableListOf() }
         val ownerList = handOwnerDisplays.getOrPut(player.uuid) { mutableListOf() }
 
-        val tileCount = player.hands.size
+        val hands = player.hands.toList()
+        val tileCount = hands.size
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
         val dirOffset = 0.85 + DEPTH + HEIGHT
@@ -189,7 +190,7 @@ class BoardRenderer(
         val drawnHandSize = waitingHandSize + 1
         val showGap = player.justDrewTile && tileCount == drawnHandSize
 
-        player.hands.forEachIndexed { index, tile ->
+        hands.forEachIndexed { index, tile ->
             val isLast = index == tileCount - 1 && showGap
             val tileOffset = index * (WIDTH + PADDING) + if (isLast) PADDING * 15.0 else 0.0
 
@@ -823,13 +824,14 @@ class BoardRenderer(
         val perp = seatPerpendicular(seatIndex)
         val dirOffset = 0.85 + DEPTH + HEIGHT
         val yaw = seatYaw(seatIndex)
-        val tileCount = player.hands.size
+        val hands = player.hands.toList()
+        val tileCount = hands.size
         val totalWidth = tileCount * WIDTH + (tileCount - 1) * PADDING
         val startOffset = totalWidth / 2.0
 
         val revealed = mutableListOf<MahjongTileDisplay>()
 
-        player.hands.forEachIndexed { index, tile ->
+        hands.forEachIndexed { index, tile ->
             val tileOffset = index * (WIDTH + PADDING)
             val x = tableCenter.x + dir[0] * dirOffset + perp[0] * (startOffset - tileOffset)
             val z = tableCenter.z + dir[1] * dirOffset + perp[1] * (startOffset - tileOffset)
