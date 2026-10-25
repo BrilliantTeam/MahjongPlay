@@ -40,13 +40,13 @@ class MahjongTableManager : GameRegistry {
     private var dataFolder: File? = null
     private var loading = false
 
-    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000, removedSeats: Set<Int> = emptySet(), quarter: Int = 0): MahjongTableSession {
-        val game = MahjongGame(rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
+    fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000, removedSeats: Set<Int> = emptySet(), quarter: Int = 0, taiwan: Boolean = false): MahjongTableSession {
+        val game = MahjongGame(rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints, taiwan = taiwan))
         val renderer = BoardRenderer(game, center, quarter)
         val bridge = PaperGameBridge(game, renderer, this)
         game.listener = bridge
 
-        val modeText = if (gameLength == MahjongRule.GameLength.TWO_WIND && playerCount == 3) "三麻" else gameLength.displayText
+        val modeText = modeText(gameLength, playerCount, taiwan)
         val existingNums = tables.values.map { it.humanId.substringAfterLast("]").removeSuffix("號桌").toIntOrNull() ?: 0 }.toSet()
         var tableNum = 1
         while (tableNum in existingNums) tableNum++
@@ -71,7 +71,13 @@ class MahjongTableManager : GameRegistry {
         return session
     }
 
-    fun changeSettings(session: MahjongTableSession, gameLength: MahjongRule.GameLength, playerCount: Int, startingPoints: Int): String? {
+    private fun modeText(gameLength: MahjongRule.GameLength, playerCount: Int, taiwan: Boolean): String = when {
+        taiwan -> "台麻"
+        gameLength == MahjongRule.GameLength.TWO_WIND && playerCount == 3 -> "三麻"
+        else -> gameLength.displayText
+    }
+
+    fun changeSettings(session: MahjongTableSession, gameLength: MahjongRule.GameLength, playerCount: Int, startingPoints: Int, taiwan: Boolean = false): String? {
         if (session.game.status != GameStatus.WAITING) return "牌局進行中無法變更設定"
         if (session.game.players.isNotEmpty()) return "請先清空座位再變更設定"
 
@@ -80,9 +86,9 @@ class MahjongTableManager : GameRegistry {
         session.table.startInteraction?.uniqueId?.let { startInteractionToTable.remove(it) }
         session.table.readyInteraction?.uniqueId?.let { readyInteractionToTable.remove(it) }
 
-        val modeText = if (gameLength == MahjongRule.GameLength.TWO_WIND && playerCount == 3) "三麻" else gameLength.displayText
+        val modeText = modeText(gameLength, playerCount, taiwan)
         val tableNum = session.humanId.substringAfterLast("]").removeSuffix("號桌")
-        val game = MahjongGame(tableId = session.tableId, rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
+        val game = MahjongGame(tableId = session.tableId, rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints, taiwan = taiwan))
         val renderer = BoardRenderer(game, session.center, session.quarter)
         val bridge = PaperGameBridge(game, renderer, this)
         game.listener = bridge
@@ -312,6 +318,7 @@ class MahjongTableManager : GameRegistry {
                 "gameLength" to session.game.rule.length.name,
                 "playerCount" to session.game.rule.playerCount,
                 "startingPoints" to session.game.rule.startingPoints,
+                "taiwan" to session.game.rule.taiwan,
                 "owner" to session.ownerUUID,
                 "ownerName" to session.ownerName,
                 "quarter" to session.quarter
@@ -362,9 +369,10 @@ class MahjongTableManager : GameRegistry {
             val removedSeats = (map["removedSeats"] as? List<*>)
                 ?.mapNotNull { (it as? Number)?.toInt() }?.toSet() ?: emptySet()
             val quarter = (map["quarter"] as? Number)?.toInt() ?: 0
+            val taiwan = map["taiwan"] as? Boolean ?: false
 
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
-            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats, quarter)
+            val session = createTable(center, owner, ownerName, gameLength, playerCount, startingPoints, removedSeats, quarter, taiwan)
             ScheduleUtil.region(center) {
                 if (session.table.isIntact()) {
                     session.table.spawn()

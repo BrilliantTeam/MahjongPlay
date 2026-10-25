@@ -25,6 +25,7 @@ data class YakuSettlement(
     val fu: Int,
     val han: Int,
     val score: Int,
+    val taiList: List<Pair<String, Int>> = emptyList(),
 ) {
     companion object {
         fun nagashiMangan(

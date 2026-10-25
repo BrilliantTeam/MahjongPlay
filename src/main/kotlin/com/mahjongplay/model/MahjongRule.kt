@@ -18,7 +18,8 @@ data class MahjongRule(
     var spectate: Boolean = true,
     var redFive: RedFive = RedFive.THREE,
     var openTanyao: Boolean = true,
-    var localYaku: Boolean = false
+    var localYaku: Boolean = false,
+    var taiwan: Boolean = false
 ) {
     val isSanma: Boolean get() = playerCount == 3
     fun toJsonString(): String = Json.encodeToString(serializer(), this)
@@ -26,6 +27,28 @@ data class MahjongRule(
     fun toComponents(): List<Component> {
         val enable = Component.text("開啟").color(MJColor.GREEN)
         val disable = Component.text("關閉").color(MJColor.GREEN)
+        if (taiwan) return listOf(
+            Component.text("規則（台灣十六張）").color(MJColor.RED).decorate(TextDecoration.BOLD),
+            Component.text(" - 局數：").color(MJColor.YELLOW)
+                .append(length.toText().color(MJColor.GREEN)),
+            Component.text(" - 思考時間：").color(MJColor.YELLOW)
+                .append(Component.text("${thinkingTime.base}").color(MJColor.AQUA))
+                .append(Component.text(" + ").color(MJColor.RED))
+                .append(Component.text("${thinkingTime.extra}").color(MJColor.AQUA))
+                .append(Component.text(" 秒").color(MJColor.GREEN)),
+            Component.text(" - 起始點數：").color(MJColor.YELLOW)
+                .append(Component.text("$startingPoints").color(MJColor.GREEN)),
+            Component.text(" - 底／台：").color(MJColor.YELLOW)
+                .append(Component.text("$TAIWAN_BASE／$TAIWAN_PER_TAI").color(MJColor.GREEN)),
+            Component.text(" - 花牌：").color(MJColor.YELLOW)
+                .append(Component.text("8 張，摸到自動補牌").color(MJColor.GREEN)),
+            Component.text(" - 留牌：").color(MJColor.YELLOW)
+                .append(Component.text("$TAIWAN_RESERVE 張").color(MJColor.GREEN)),
+            Component.text(" - 莊家：").color(MJColor.YELLOW)
+                .append(Component.text("莊家胡牌或流局連莊，每連一莊多 2 台").color(MJColor.GREEN)),
+            Component.text(" - 旁觀：").color(MJColor.YELLOW)
+                .append(if (spectate) enable else disable)
+        )
         return listOf(
             Component.text("規則").color(MJColor.RED).decorate(TextDecoration.BOLD),
             Component.text(" - 局數：").color(MJColor.YELLOW)
@@ -54,6 +77,9 @@ data class MahjongRule(
         fun fromJsonString(jsonString: String): MahjongRule = Json.decodeFromString(serializer(), jsonString)
         const val MAX_POINTS = 200000
         const val MIN_POINTS = 100
+        const val TAIWAN_BASE = 500
+        const val TAIWAN_PER_TAI = 200
+        const val TAIWAN_RESERVE = 16
     }
 
     enum class GameLength(

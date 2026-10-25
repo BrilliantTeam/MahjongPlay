@@ -24,7 +24,10 @@ enum class MahjongTile : TextFormatting {
     P5_RED,
     S5_RED,
 
-    UNKNOWN;
+    UNKNOWN,
+
+    SPRING, SUMMER, AUTUMN, WINTER,
+    PLUM, ORCHID, BAMBOO, CHRYSANTHEMUM;
 
     val modelPath: String
         get() = "mahjongcraft:mahjong_tile_${name.lowercase()}"
@@ -34,6 +37,9 @@ enum class MahjongTile : TextFormatting {
 
     val code: Int = ordinal
 
+    val isFlower: Boolean
+        get() = ordinal > UNKNOWN.ordinal
+
     val mahjong4jTile: Tile
         get() {
             val tileCode = when (code) {
@@ -41,7 +47,7 @@ enum class MahjongTile : TextFormatting {
                 P5_RED.code -> P5.code
                 S5_RED.code -> S5.code
                 UNKNOWN.code -> M1.code
-                else -> code
+                else -> if (isFlower) M1.code else code
             }
             return Tile.valueOf(tileCode)
         }
@@ -79,6 +85,7 @@ enum class MahjongTile : TextFormatting {
         }
 
     override fun toText(): Component {
+        if (isFlower) return Component.text(displayName)
         return when (mahjong4jTile.type) {
             TileType.MANZU -> Component.text("${mahjong4jTile.number}萬")
             TileType.PINZU -> Component.text("${mahjong4jTile.number}筒")
@@ -113,6 +120,8 @@ enum class MahjongTile : TextFormatting {
             WHITE_DRAGON -> "白"; GREEN_DRAGON -> "發"; RED_DRAGON -> "中"
             M5_RED -> "赤五萬"; P5_RED -> "赤五筒"; S5_RED -> "赤五索"
             UNKNOWN -> "?"
+            SPRING -> "春"; SUMMER -> "夏"; AUTUMN -> "秋"; WINTER -> "冬"
+            PLUM -> "梅"; ORCHID -> "蘭"; BAMBOO -> "竹"; CHRYSANTHEMUM -> "菊"
         }
 
     fun doraFromIndicator(isSanma: Boolean = false): MahjongTile {
@@ -123,6 +132,8 @@ enum class MahjongTile : TextFormatting {
     companion object {
 
         fun random(): MahjongTile = entries.toTypedArray().random()
+
+        val flowers: List<MahjongTile> = entries.filter { it.isFlower }
 
         val normalWall: List<MahjongTile> = buildList {
             entries.forEach { tile ->

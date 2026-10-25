@@ -42,14 +42,16 @@ object MahjongPanel {
         val length: MahjongRule.GameLength,
         val playerCount: Int,
         val startingPoints: Int,
-        val hint: String
+        val hint: String,
+        val taiwan: Boolean = false
     )
 
     private val MODES = listOf(
         Mode("一局", MahjongRule.GameLength.ONE_GAME, 4, 25000, "只打一局就結算，最適合快速體驗"),
         Mode("東風", MahjongRule.GameLength.EAST, 4, 25000, "打完東一到東四即結束"),
         Mode("半莊", MahjongRule.GameLength.TWO_WIND, 4, 25000, "東風加南風，共八局"),
-        Mode("三麻", MahjongRule.GameLength.TWO_WIND, 3, 35000, "三人半莊，移除二萬至八萬，起始 35000 點")
+        Mode("三麻", MahjongRule.GameLength.TWO_WIND, 3, 35000, "三人半莊，移除二萬至八萬，起始 35000 點"),
+        Mode("台麻", MahjongRule.GameLength.EAST, 4, 25000, "台灣十六張，打一圈，含八張花牌、連莊與台數計分", taiwan = true)
     )
 
     fun sendModePrompt(manager: MahjongTableManager, player: Player, center: Location) {
@@ -75,7 +77,7 @@ object MahjongPanel {
 
     private fun changeMode(manager: MahjongTableManager, player: Player, session: MahjongTableSession, mode: Mode) {
         if (!guard(manager, session, player, "mahjongplay.command.mode")) return
-        val error = manager.changeSettings(session, mode.length, mode.playerCount, mode.startingPoints)
+        val error = manager.changeSettings(session, mode.length, mode.playerCount, mode.startingPoints, mode.taiwan)
         if (error != null) {
             player.msg(error, MJColor.RED)
             return
@@ -205,7 +207,7 @@ object MahjongPanel {
 
         val session = manager.createTable(
             center, player.uniqueId.toString(), player.name,
-            mode.length, mode.playerCount, mode.startingPoints, quarter = quarter
+            mode.length, mode.playerCount, mode.startingPoints, quarter = quarter, taiwan = mode.taiwan
         )
         ScheduleUtil.region(center) {
             session.table.spawn()

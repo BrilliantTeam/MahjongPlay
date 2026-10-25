@@ -24,6 +24,7 @@
 - **右鍵交互** — 出牌、吃、碰、槓、立直、榮和、自摸等所有操作均通過右鍵點擊完成
 - **多種模式** — 支持四麻（半莊/東風/一局）和三麻，規則完整
 - **三人麻將（三麻）** — 去除二萬~八萬、禁止吃、拔北（抜きドラ）、自摸損計分
+- **台灣麻將（台麻）** — 十六張、八張花牌自動補花、一炮多響、搶槓胡、連莊加台、八仙過海／七搶一，以台數計分
 - **兩步出牌確認** — 第一次點擊抬起麻將牌，第二次點擊確認出牌，同時高亮牌河中相同的牌
 - **TextDisplay 操作按鈕** — 吃/碰/槓等操作以懸浮按鈕形式顯示，支持二級子菜單
 - **Boss 血條** — 常駐顯示場風、牌山剩餘、所有玩家風位/名字/倒計時
@@ -82,6 +83,7 @@
 - 原版模組：[MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
 - 麻將邏輯庫：[mahjong4j](https://github.com/mahjong4j/mahjong4j)
 - 牌面貼圖：[mahjong_graphic](https://github.com/lietxia/mahjong_graphic)（雀魂樣式，作者：lietxia）
+- 台灣麻將規則與花牌圖案：[TaiwanMahjong](https://github.com/etetet94/TaiwanMahjong)（作者：etetet94，規則 MIT、花牌圖案 CC0）
 
 ## 許可證
 
@@ -105,6 +107,7 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 - **Right-click interaction** for all actions (discard, chii, pon, kan, riichi, ron, tsumo)
 - **4-player (半莊/東風/一局) and 3-player (三麻) modes** with full rule support
 - **3-player mahjong (三麻)**: removed 2-8 manzu tiles, disabled chii, nukidora (拔北), tsumo loss scoring
+- **Taiwanese mahjong (台麻)**: 16-tile hands, 8 flower tiles with auto replacement, multiple ron, robbing the kong, dealer streak bonus, tai-based scoring
 - **Two-click discard confirmation** with discard pile highlight
 - **TextDisplay action buttons** with two-level sub-menus
 - **Boss bar** showing all players' wind/name/timer, round info, and wall count
@@ -164,6 +167,7 @@ Output: `build/libs/MahjongPlay-1.2.0.jar`
 - Original mod: [MahjongCraft](https://github.com/doublemoon1119/MahjongCraft) by doublemoon1119
 - Mahjong logic: [mahjong4j](https://github.com/mahjong4j/mahjong4j)
 - Tile face textures: [mahjong_graphic](https://github.com/lietxia/mahjong_graphic) (Majsoul style, by lietxia)
+- Taiwanese rules and flower artwork: [TaiwanMahjong](https://github.com/etetet94/TaiwanMahjong) by etetet94 (rules MIT, flower art CC0)
 
 ## License
 

@@ -46,7 +46,7 @@ class PaperGameBridge(
         sound(Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.0f)
         val title = Title.title(
             Component.text(round.displayName(), MJColor.GOLD),
-            Component.text("本場${round.honba}", MJColor.YELLOW),
+            Component.text("${if (game.rule.taiwan) "連莊" else "本場"}${round.honba}", MJColor.YELLOW),
             Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500))
         )
         forEachPlayer { it.showTitle(title) }
@@ -144,7 +144,7 @@ class PaperGameBridge(
     override fun onDraw(draw: ExhaustiveDraw, settlement: ScoreSettlement) {
         if (draw == ExhaustiveDraw.NORMAL) {
             ScheduleUtil.region(renderer.tableCenter, Runnable {
-                game.players.filter { it.isTenpai }.forEach { renderer.revealHands(it) }
+                game.players.filter { game.isTenpai(it) }.forEach { renderer.revealHands(it) }
             })
         }
         sound(Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.6f)
@@ -185,6 +185,12 @@ class PaperGameBridge(
     }
 
     private fun sendYakuSummary(settlement: YakuSettlement) {
+        if (game.rule.taiwan) {
+            val tais = settlement.taiList.joinToString("、") { "${it.first} ${it.second}台" }.ifEmpty { "無台" }
+            broadcast(Component.text("  ${settlement.displayName}：$tais", MJColor.GREEN)
+                .append(Component.text(" 共${settlement.han}台", MJColor.YELLOW)))
+            return
+        }
         val yakuNames = buildList {
             addAll(settlement.yakuList.map { YakuNameChinese.getName(it) })
             addAll(settlement.yakumanList.map { YakuNameChinese.getName(it) })

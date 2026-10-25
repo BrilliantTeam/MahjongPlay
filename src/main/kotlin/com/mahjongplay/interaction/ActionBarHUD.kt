@@ -34,14 +34,20 @@ object ActionBarHUD {
             val seatWind = seatWindOf(game, mjPlayer)
             val doraStr = game.doraIndicators.joinToString(",") { it.doraFromIndicator(game.rule.isSanma).displayName }
 
+            val taiwan = game.rule.taiwan
             var bar = Component.text("${round.displayName()}", MJColor.GOLD)
-                .append(Component.text("｜本場${round.honba}", MJColor.YELLOW))
+                .append(Component.text("｜${if (taiwan) "連莊" else "本場"}${round.honba}", MJColor.YELLOW))
                 .append(Component.text("｜$seatWind", MJColor.AQUA))
                 .append(Component.text("｜牌山$wallSize", MJColor.GREEN))
                 .append(Component.text("｜${mjPlayer.points}點", MJColor.WHITE))
-                .append(Component.text("｜寶牌：$doraStr", MJColor.RED))
+                .append(
+                    if (taiwan) Component.text("｜花：${mjPlayer.nukiDoraTiles.toList().joinToString("") { it.displayName }.ifEmpty { "無" }}", MJColor.RED)
+                    else Component.text("｜寶牌：$doraStr", MJColor.RED)
+                )
 
-            val machi = if (mjPlayer.hands.size == mjPlayer.waitingHandSize) {
+            val machi = if (taiwan) {
+                game.taiwanMachiPreview(mjPlayer).takeIf { it.isNotEmpty() }?.let { machiText(it) }
+            } else if (mjPlayer.hands.size == mjPlayer.waitingHandSize) {
                 game.machiWinnable(mjPlayer).takeIf { it.isNotEmpty() }?.let { machiText(it) }
             } else {
                 mjPlayer.previewMachiTiles.takeIf { it.isNotEmpty() }?.let { machiText(it) }

@@ -60,7 +60,9 @@ class MahjongGame(
     private val seatOrderFromDealer: List<MahjongPlayerBase>
         get() = List(playerCount) { seat[(round.round + it) % playerCount] }
 
-    val wallSize: Int get() = wall.size
+    private val liveWall: Int get() = (wall.size - MahjongRule.TAIWAN_RESERVE).coerceAtLeast(0)
+
+    val wallSize: Int get() = if (rule.taiwan) liveWall else wall.size
 
     private val generalSituation: GeneralSituation
         get() = buildGeneralSituation(isFirstRound)
@@ -136,7 +138,7 @@ class MahjongGame(
         listener?.onGameStart(this)
         gameJob = CoroutineScope(Dispatchers.Default).launch {
             delay(500)
-            startRound()
+            if (rule.taiwan) startTaiwanRound() else startRound()
         }
     }
 
@@ -650,7 +652,310 @@ class MahjongGame(
         delay(SCORE_SETTLE_MS)
     }
 
+    private enum class TaiwanDraw { FIRST, NORMAL, SUPPLEMENT, NONE }
+
+    private var supplementDrawn = false
+
+    private fun taiwanDraw(player: MahjongPlayerBase, supplement: Boolean): MahjongTile? {
+        var fromTail = supplement
+        supplementDrawn = supplement
+        while (wall.isNotEmpty()) {
+            val tile = if (fromTail) wall.removeLast() else wall.removeFirst()
+            if (!tile.isFlower) {
+                player.drawTile(tile)
+                return tile
+            }
+            player.nukiDoraTiles += tile
+            fromTail = true
+            supplementDrawn = true
+            if (flowerWin() != null) return null
+        }
+        return null
+    }
+
+    private fun flowerWin(): Pair<MahjongPlayerBase, MahjongPlayerBase?>? {
+        players.find { it.nukiDoraTiles.size == 8 }?.let { return it to null }
+        val seven = players.find { it.nukiDoraTiles.size == 7 } ?: return null
+        val one = players.find { it != seven && it.nukiDoraTiles.size == 1 } ?: return null
+        return seven to one
+    }
+
+    private fun taiwanScore(
+        player: MahjongPlayerBase,
+        tile: MahjongTile,
+        selfDraw: Boolean,
+        source: MahjongPlayerBase? = null,
+        replacement: Boolean = false,
+        robKong: Boolean = false,
+    ): List<TaiwanScoring.Tai> {
+        val dealer = seatOrderFromDealer[0]
+        val calls = players.any { it.fuuroList.isNotEmpty() }
+        val hand = TaiwanScoring.codes(player.hands) + if (selfDraw) emptyList() else listOf(tile.mahjong4jTile.code)
+        val ctx = TaiwanScoring.Context(
+            winningTile = tile.mahjong4jTile.code,
+            selfDraw = selfDraw,
+            seatWind = seatOrderFromDealer.indexOf(player),
+            roundWind = round.wind.ordinal,
+            heavenly = selfDraw && player == dealer && allDiscards.isEmpty() && !calls,
+            earthly = selfDraw && player != dealer && player.discardedTiles.isEmpty() && !calls,
+            human = !selfDraw && !robKong && player != dealer && source == dealer && allDiscards.size == 1 && !calls,
+            lastDraw = selfDraw && liveWall == 0 && !replacement,
+            lastDiscard = !selfDraw && !robKong && liveWall == 0,
+            replacement = selfDraw && replacement,
+            robKong = robKong,
+        )
+        return TaiwanScoring.score(hand, TaiwanScoring.melds(player.fuuroList), TaiwanScoring.flowerIndices(player.nukiDoraTiles), ctx)
+            ?: throw IllegalStateException("Taiwan hand passed canWin but cannot be scored")
+    }
+
+    private fun taiwanRonList(tile: MahjongTile, discarder: MahjongPlayerBase, passed: Set<MahjongPlayerBase>): List<MahjongPlayerBase> =
+        List(playerCount - 1) { seat[(seat.indexOf(discarder) + it + 1) % playerCount] }.filter {
+            it !in passed && TaiwanScoring.canWin(TaiwanScoring.codes(it.hands) + tile.mahjong4jTile.code, TaiwanScoring.melds(it.fuuroList))
+        }
+
+    private suspend fun taiwanSettle(wins: List<Pair<MahjongPlayerBase, List<TaiwanScoring.Tai>>>, source: MahjongPlayerBase?, tile: MahjongTile) {
+        val dealer = seatOrderFromDealer[0]
+        val change = players.associateWith { 0 }.toMutableMap()
+        wins.forEach { (winner, tais) ->
+            val handTai = tais.sumOf { it.tai }
+            players.filter { it != winner && (source == null || it == source) }.forEach { payer ->
+                val tai = handTai + if (payer == dealer || winner == dealer) 1 + 2 * round.honba else 0
+                val amount = MahjongRule.TAIWAN_BASE + MahjongRule.TAIWAN_PER_TAI * tai
+                change[payer] = change.getValue(payer) - amount
+                change[winner] = change.getValue(winner) + amount
+            }
+        }
+        val scoreList = players.map { ScoreItem(it.displayName, it.uuid, it.isRealPlayer, scoreOrigin = it.points, scoreChange = change.getValue(it)) }
+        players.forEach { it.points += change.getValue(it) }
+        val settlements = wins.map { (winner, tais) ->
+            YakuSettlement(
+                displayName = winner.displayName,
+                uuid = winner.uuid,
+                isRealPlayer = winner.isRealPlayer,
+                yakuList = emptyList(),
+                yakumanList = emptyList(),
+                doubleYakumanList = emptyList(),
+                riichi = false,
+                winningTile = tile,
+                hands = winner.hands.toList(),
+                fuuroList = winner.fuuroList.map { (it.mentsu is Kantsu && !it.mentsu.isOpen) to it.tiles },
+                doraIndicators = emptyList(),
+                uraDoraIndicators = emptyList(),
+                fu = 0,
+                han = tais.sumOf { it.tai },
+                score = change.getValue(winner),
+                taiList = tais.map { it.name to it.tai },
+            )
+        }
+        if (source == null) listener?.onTsumo(wins[0].first, tile, settlements[0])
+        else listener?.onRon(wins.map { it.first }, source, tile, settlements)
+        listener?.onScoreSettlement(ScoreSettlement(if (source == null) "tsumo" else "ron", scoreList))
+        delay(YAKU_SETTLE_MS * settlements.size + SCORE_SETTLE_MS)
+    }
+
+    private suspend fun settleFlowerWin(win: Pair<MahjongPlayerBase, MahjongPlayerBase?>) {
+        val (winner, source) = win
+        val title = if (source == null) "八仙過海" else "七搶一"
+        taiwanSettle(listOf(winner to listOf(TaiwanScoring.Tai(title, 8))), source, MahjongTile.UNKNOWN)
+    }
+
+    private suspend fun startTaiwanRound() {
+        if (!isPlaying) return
+        clearStuffs()
+        listener?.onRoundStart(this, round)
+        wall = (MahjongTile.normalWall + MahjongTile.flowers).shuffled().toMutableList()
+        val order = seatOrderFromDealer
+        repeat(16) { order.forEach { it.drawTile(wall.removeFirst()) } }
+        order[0].drawTile(wall.removeFirst())
+        order.forEach { p ->
+            while (p.hands.any { it.isFlower }) {
+                val flowers = p.hands.filter { it.isFlower }
+                p.hands -= flowers.toSet()
+                p.nukiDoraTiles += flowers
+                repeat(flowers.size) { p.drawTile(wall.removeLast()) }
+            }
+        }
+        players.forEach { sortHands(it); listener?.onHandsUpdated(it) }
+
+        val dealer = order[0]
+        var dealerRemaining = true
+        delay(1500)
+
+        var current = dealer
+        var mode = TaiwanDraw.FIRST
+        val passedRon = mutableSetOf<MahjongPlayerBase>()
+        var decided = flowerWin()?.let { settleFlowerWin(it); dealerRemaining = it.first == dealer; true } ?: false
+
+        roundLoop@ while (isPlaying && !decided) {
+            val player = current
+            player.justDrewTile = mode != TaiwanDraw.NONE
+            var drawn: MahjongTile? = null
+            var replacement = false
+            when (mode) {
+                TaiwanDraw.FIRST -> drawn = player.hands.last()
+                TaiwanDraw.NORMAL, TaiwanDraw.SUPPLEMENT -> {
+                    if (liveWall == 0) break@roundLoop
+                    passedRon -= player
+                    val tile = taiwanDraw(player, mode == TaiwanDraw.SUPPLEMENT)
+                    val flower = flowerWin()
+                    if (flower != null) {
+                        listener?.onHandsUpdated(player)
+                        settleFlowerWin(flower)
+                        dealerRemaining = flower.first == dealer
+                        decided = true
+                        break@roundLoop
+                    }
+                    if (tile == null) break@roundLoop
+                    replacement = supplementDrawn
+                    sortHands(player, tile)
+                    listener?.onTileDrawn(player, tile); listener?.onHandsUpdated(player)
+                    drawn = tile
+                }
+                TaiwanDraw.NONE -> {}
+            }
+            if (player is MahjongBot) delay(500)
+
+            if (drawn != null) {
+                if (TaiwanScoring.canWin(TaiwanScoring.codes(player.hands), TaiwanScoring.melds(player.fuuroList)) && player.askToTsumo()) {
+                    taiwanSettle(listOf(player to taiwanScore(player, drawn, true, replacement = replacement)), null, drawn)
+                    dealerRemaining = player == dealer
+                    decided = true
+                    break@roundLoop
+                }
+                if (liveWall > 0 && (player.canAnkan || player.canKakan)) {
+                    val kanTile = player.askToAnkanOrKakan(rule)
+                    if (kanTile != null) {
+                        val isAnkan = kanTile in player.tilesCanAnkan
+                        if (isAnkan) player.ankan(kanTile) else player.kakan(kanTile)
+                        listener?.onKan(player, kanTile, if (isAnkan) "ankan" else "kakan")
+                        if (!isAnkan) {
+                            val robbers = taiwanRonList(kanTile, player, passedRon).filter {
+                                it.askToRon(kanTile, it.asClaimTarget(player)).also { ok -> if (!ok) passedRon += it }
+                            }
+                            if (robbers.isNotEmpty()) {
+                                taiwanSettle(robbers.map { it to taiwanScore(it, kanTile, false, player, robKong = true) }, player, kanTile)
+                                dealerRemaining = dealer in robbers
+                                decided = true
+                                break@roundLoop
+                            }
+                        }
+                        mode = TaiwanDraw.SUPPLEMENT
+                        continue@roundLoop
+                    }
+                }
+            }
+
+            val timeoutTile = drawn?.takeIf { it in player.hands } ?: player.hands.last()
+            val choice = if (player is MahjongBot) {
+                val code = TaiwanScoring.chooseDiscard(TaiwanScoring.codes(player.hands), TaiwanScoring.melds(player.fuuroList), timeoutTile.mahjong4jTile.code)
+                player.hands.first { it.mahjong4jTile.code == code }
+            } else player.askToDiscardTile(timeoutTile, emptyList(), drawn != null)
+            val discarded = player.discardTile(choice) ?: break@roundLoop
+            allDiscards += discarded
+            player.lastDiscardAllIndex = allDiscards.size - 1
+            sortHands(player)
+            listener?.onTileDiscarded(player, discarded); listener?.onHandsUpdated(player)
+
+            val winners = taiwanRonList(discarded, player, passedRon).filter {
+                it.askToRon(discarded, it.asClaimTarget(player)).also { ok -> if (!ok) passedRon += it }
+            }
+            if (winners.isNotEmpty()) {
+                taiwanSettle(winners.map { it to taiwanScore(it, discarded, false, player) }, player, discarded)
+                dealerRemaining = dealer in winners
+                decided = true
+                break@roundLoop
+            }
+
+            val si = seat.indexOf(player)
+            val next = seat[(si + 1) % playerCount]
+            current = next
+            mode = TaiwanDraw.NORMAL
+            if (liveWall == 0) {
+                delay(MIN_WAITING_TIME)
+                continue@roundLoop
+            }
+            val ponner = players.find { it != player && it.canPon(discarded) }
+            val chiier = next.takeIf { it.canChii(discarded) }
+            var claimer: MahjongPlayerBase? = null
+            var chiiPair: Pair<MahjongTile, MahjongTile>? = null
+            if (ponner != null) {
+                val target = ponner.asClaimTarget(player)
+                when {
+                    ponner.canMinkan(discarded) -> when (ponner.askToMinkanOrPon(discarded, target, rule)) {
+                        MahjongGameBehavior.MINKAN -> {
+                            ponner.minkan(discarded, claimTargetBySeatDiff(seat.indexOf(ponner), si), player)
+                            listener?.onKan(ponner, discarded, "minkan", player)
+                            listener?.onHandsUpdated(ponner)
+                            current = ponner
+                            mode = TaiwanDraw.SUPPLEMENT
+                            continue@roundLoop
+                        }
+                        MahjongGameBehavior.PON -> claimer = ponner
+                        else -> {}
+                    }
+                    ponner == chiier -> ponner.askToPonOrChii(discarded, ponner.getTilePairsForChii(discarded), ponner.getTilePairForPon(discarded), target)?.let {
+                        claimer = ponner
+                        if (it.first != it.second) chiiPair = it
+                    }
+                    ponner.askToPon(discarded, ponner.getTilePairForPon(discarded), target) -> claimer = ponner
+                }
+            }
+            if (claimer == null && chiier != null && chiier != ponner) {
+                chiier.askToChii(discarded, chiier.getTilePairsForChii(discarded), chiier.asClaimTarget(player))?.let {
+                    claimer = chiier
+                    chiiPair = it
+                }
+            }
+            val who = claimer
+            if (who != null) {
+                val pair = chiiPair
+                if (pair != null) {
+                    who.chii(discarded, pair, player); listener?.onChii(who, discarded, player)
+                } else {
+                    who.pon(discarded, claimTargetBySeatDiff(seat.indexOf(who), si), player); listener?.onPon(who, discarded, player)
+                }
+                listener?.onHandsUpdated(who)
+                current = who
+                mode = TaiwanDraw.NONE
+            } else if (ponner == null && chiier == null) delay(MIN_WAITING_TIME)
+        }
+
+        if (!isPlaying) return
+        if (!decided) {
+            val settlement = ScoreSettlement("normal", players.map { ScoreItem(it.displayName, it.uuid, it.isRealPlayer, scoreOrigin = it.points, scoreChange = 0) })
+            listener?.onDraw(ExhaustiveDraw.NORMAL, settlement)
+            listener?.onScoreSettlement(settlement)
+            delay(SCORE_SETTLE_MS)
+        }
+
+        delay(3000)
+        if (!isPlaying) return
+        if (players.any { it.points < 0 }) { end(); return }
+        when {
+            dealerRemaining -> round.honba++
+            round.isAllLast(rule) -> { end(); return }
+            else -> round.nextRound(playerCount)
+        }
+        startTaiwanRound()
+    }
+
+    fun taiwanMachiPreview(player: MahjongPlayerBase): Map<MahjongTile, Boolean> {
+        val hand = TaiwanScoring.codes(player.hands.toList())
+        val melds = TaiwanScoring.melds(player.fuuroList.toList())
+        val waits = if (hand.size % 3 == 1) TaiwanScoring.waits(hand, melds)
+        else hand.distinct().flatMap { TaiwanScoring.waits(hand - it, melds) }.distinct().sorted()
+        return waits.associate { MahjongTile.entries[it] to true }
+    }
+
+    fun isTenpai(player: MahjongPlayerBase): Boolean =
+        if (rule.taiwan) machiWinnable(player).isNotEmpty() else player.isTenpai
+
     fun machiWinnable(player: MahjongPlayerBase, discard: MahjongTile? = null): Map<MahjongTile, Boolean> {
+        if (rule.taiwan) {
+            val hands = if (discard == null) player.hands else player.hands.toMutableList().apply { remove(discard) }
+            return TaiwanScoring.waits(TaiwanScoring.codes(hands), TaiwanScoring.melds(player.fuuroList))
+                .associate { MahjongTile.entries[it] to true }
+        }
         if (deadWall.isEmpty()) return emptyMap()
         return player.machiWinnable(
             hands = if (discard == null) player.hands else player.hands.toMutableList().apply { remove(discard) },

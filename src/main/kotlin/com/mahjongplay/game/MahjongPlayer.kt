@@ -73,7 +73,8 @@ class MahjongPlayer(
         if (behavior !in pending.behaviors) return false
         if (behavior == MahjongGameBehavior.DISCARD) {
             val tile = MahjongTile.entries.find { it.code == data.toIntOrNull() }
-            if (tile != null && discardForbiddenTiles.any { it.mahjong4jTile == tile.mahjong4jTile }) {
+            if (tile == null || tile !in hands) return false
+            if (discardForbiddenTiles.any { it.mahjong4jTile == tile.mahjong4jTile }) {
                 bukkitPlayer?.msg("食替禁止：鳴牌後不能立即打出 ${tile.displayName}", MJColor.RED)
                 return false
             }

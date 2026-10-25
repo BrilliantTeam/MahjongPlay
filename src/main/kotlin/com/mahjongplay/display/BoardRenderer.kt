@@ -186,7 +186,7 @@ class BoardRenderer(
         val yaw = seatYaw(seatIndex)
         val isRealPlayer = player.isRealPlayer
 
-        val waitingHandSize = 13 - player.fuuroList.size * 3
+        val waitingHandSize = (if (game.rule.taiwan) 16 else 13) - player.fuuroList.size * 3
         val drawnHandSize = waitingHandSize + 1
         val showGap = player.justDrewTile && tileCount == drawnHandSize
 
@@ -686,14 +686,16 @@ class BoardRenderer(
         val perp = seatPerpendicular(seatIndex)
         val halfTable = 1.5
         val yaw = seatYaw(seatIndex)
-        val handDirOffset = 0.85 + DEPTH + HEIGHT
+        val taiwan = game.rule.taiwan
+        val rowOffset = if (taiwan) 0.85 + DEPTH + HEIGHT + HEIGHT + DEPTH * 2 else 0.85 + DEPTH + HEIGHT
+        val side = if (taiwan) -1 else 1
 
         for (index in existing.size until player.nukiDoraTiles.size) {
             val tile = player.nukiDoraTiles[index]
             val tileOffset = index * (WIDTH + PADDING)
-            val perpPos = halfTable - WIDTH / 2.0 - tileOffset
-            val x = tableCenter.x + dir[0] * handDirOffset - perp[0] * perpPos
-            val z = tableCenter.z + dir[1] * handDirOffset - perp[1] * perpPos
+            val perpPos = (halfTable - WIDTH / 2.0 - tileOffset) * side
+            val x = tableCenter.x + dir[0] * rowOffset - perp[0] * perpPos
+            val z = tableCenter.z + dir[1] * rowOffset - perp[1] * perpPos
             val loc = Location(world, x, flatTileY, z)
 
             val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw)
