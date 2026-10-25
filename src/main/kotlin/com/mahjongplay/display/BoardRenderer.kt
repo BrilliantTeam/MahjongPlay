@@ -689,11 +689,12 @@ class BoardRenderer(
         val taiwan = game.rule.taiwan
         val rowOffset = if (taiwan) 0.85 + DEPTH + HEIGHT + HEIGHT + DEPTH * 2 else 0.85 + DEPTH + HEIGHT
         val side = if (taiwan) -1 else 1
+        val firstPos = if (taiwan) rowOffset - HEIGHT / 2.0 - PADDING - WIDTH / 2.0 else halfTable - WIDTH / 2.0
 
         for (index in existing.size until player.nukiDoraTiles.size) {
             val tile = player.nukiDoraTiles[index]
             val tileOffset = index * (WIDTH + PADDING)
-            val perpPos = (halfTable - WIDTH / 2.0 - tileOffset) * side
+            val perpPos = (firstPos - tileOffset) * side
             val x = tableCenter.x + dir[0] * rowOffset - perp[0] * perpPos
             val z = tableCenter.z + dir[1] * rowOffset - perp[1] * perpPos
             val loc = Location(world, x, flatTileY, z)
