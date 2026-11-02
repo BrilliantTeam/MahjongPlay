@@ -29,9 +29,6 @@ enum class MahjongTile : TextFormatting {
     SPRING, SUMMER, AUTUMN, WINTER,
     PLUM, ORCHID, BAMBOO, CHRYSANTHEMUM;
 
-    val modelPath: String
-        get() = "mahjongcraft:mahjong_tile_${name.lowercase()}"
-
     val isRed: Boolean
         get() = this == M5_RED || this == P5_RED || this == S5_RED
 

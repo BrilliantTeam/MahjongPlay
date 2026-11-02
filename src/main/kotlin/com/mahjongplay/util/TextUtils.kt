@@ -33,9 +33,10 @@ val MESSAGE_PREFIX: Component =
 fun machiText(machi: Map<com.mahjongplay.model.MahjongTile, Boolean>): Component {
     var text = Component.empty()
     machi.entries.forEachIndexed { index, (tile, winnable) ->
-        if (index > 0) text = text.append(Component.text(",", MJColor.GRAY))
-        text = if (winnable) text.append(Component.text(tile.displayName, MJColor.YELLOW))
-        else text.append(Component.text("${tile.displayName}✕", MJColor.GRAY))
+        text = text.append(
+            if (winnable) com.mahjongplay.interaction.ActionBarHUD.tile(tile)
+            else com.mahjongplay.interaction.ActionBarHUD.tile(tile, MJColor.DARK_GRAY)
+        )
     }
     if (machi.isNotEmpty() && machi.values.none { it }) {
         text = text.append(Component.text("（無役）", MJColor.RED))

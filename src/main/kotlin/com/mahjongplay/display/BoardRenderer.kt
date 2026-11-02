@@ -24,7 +24,8 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 data class ActionDisplay(
-    val textDisplay: TextDisplay,
+    val display: org.bukkit.entity.ItemDisplay,
+    val label: TextDisplay?,
     val interaction: org.bukkit.entity.Interaction,
     val behavior: MahjongGameBehavior,
     val data: String,
@@ -44,8 +45,10 @@ class BoardRenderer(
     private val discardDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     private val fuuroDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
     private val nukiDoraDisplays = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
-    private val botNameDisplays = mutableListOf<TextDisplay>()
-    private val riichiIndicatorDisplays = ConcurrentHashMap<String, TextDisplay>()
+    private val riichiIndicatorDisplays = ConcurrentHashMap<String, List<org.bukkit.entity.ItemDisplay>>()
+    private var turnLamp: org.bukkit.entity.ItemDisplay? = null
+    private var dealerMarker: org.bukkit.entity.ItemDisplay? = null
+    private var plates: SeatPlates? = null
     private var floatingCenterDisplay: MahjongTileDisplay? = null
     private val selectedTileIndices = ConcurrentHashMap<String, Int>()
     private val actionDisplays = ConcurrentHashMap<String, MutableList<ActionDisplay>>()
@@ -53,12 +56,16 @@ class BoardRenderer(
 
     companion object {
         private const val RAISE_OFFSET = 0.05
-        private const val ACTION_BUTTON_SPACING = 0.55
+        private const val ACTION_BUTTON_SPACING = 0.36
+        private const val ACTION_SIDE = 1.25
+        private const val PANEL_LAMP = 0.1875
+        private const val RIICHI_OFFSET = 0.33
     }
 
     private val world: World get() = tableCenter.world
 
     private val surfaceY: Double get() = tableCenter.blockY + 1.0 + 1.0 / 16.0
+    private val rimY: Double get() = surfaceY + 0.125
     private val standingTileY: Double get() = surfaceY + HEIGHT / 2.0
     private val flatTileY: Double get() = surfaceY + DEPTH / 2.0
 
@@ -109,35 +116,66 @@ class BoardRenderer(
         }
     )
 
+    private fun whilePlaying(task: Runnable) {
+        ScheduleUtil.region(tableCenter, Runnable { if (game.status == GameStatus.PLAYING) task.run() })
+    }
+
     override fun onRoundStart(game: MahjongGame, round: MahjongRound) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
             clearAllDisplays()
-            spawnBotNameTags()
+            spawnSeatPlates()
+            showDealer(game.dealer)
         })
     }
 
+    override fun onTileDrawn(player: MahjongPlayerBase, tile: MahjongTile) {
+        whilePlaying(Runnable { showTurn(player) })
+    }
+
+    private fun showTurn(player: MahjongPlayerBase) {
+        val seatIndex = game.seat.indexOf(player)
+        if (seatIndex < 0) return
+        val dir = seatDirection(seatIndex)
+        val loc = Location(world, tableCenter.x + dir[0] * PANEL_LAMP, surfaceY + 0.01, tableCenter.z + dir[1] * PANEL_LAMP)
+        val lamp = turnLamp ?: Props.spawn(loc, "wind_on", 0.22, lit = true).also { turnLamp = it }
+        lamp.teleportAsync(loc)
+    }
+
+    private fun showDealer(player: MahjongPlayerBase) {
+        dealerMarker?.remove()
+        val seatIndex = game.seat.indexOf(player)
+        if (seatIndex < 0) return
+        val dir = seatDirection(seatIndex)
+        val perp = seatPerpendicular(seatIndex)
+        val corner = 1.62
+        val loc = Location(world, tableCenter.x + (dir[0] + perp[0]) * corner, rimY + 0.01, tableCenter.z + (dir[1] + perp[1]) * corner)
+        dealerMarker = Props.spawn(loc, "dealer", 0.22, Math.toDegrees(Math.atan2(dir[0], dir[1])))
+    }
+
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
             renderRiichiIndicator(player)
         })
     }
 
     override fun onHandsUpdated(player: MahjongPlayerBase) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
             renderHands(player)
             if (player.nukiDoraTiles.isNotEmpty()) renderNukiDora(player)
         })
     }
 
     override fun onTileDiscarded(player: MahjongPlayerBase, tile: MahjongTile) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
             renderDiscards(player)
             spawnFloatingCenterTile(tile)
         })
     }
 
     override fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
+            clearFloatingCenterTile()
+            showTurn(player)
             renderFuuro(player)
             renderHands(player)
             renderDiscards(from)
@@ -145,7 +183,9 @@ class BoardRenderer(
     }
 
     override fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
+            clearFloatingCenterTile()
+            showTurn(player)
             renderFuuro(player)
             renderHands(player)
             renderDiscards(from)
@@ -153,10 +193,13 @@ class BoardRenderer(
     }
 
     override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
-        ScheduleUtil.region(tableCenter, Runnable {
+        whilePlaying(Runnable {
             renderFuuro(player)
             renderHands(player)
-            if (from != null) renderDiscards(from)
+            if (from != null) {
+                clearFloatingCenterTile()
+                renderDiscards(from)
+            }
         })
     }
 
@@ -254,8 +297,9 @@ class BoardRenderer(
 
         if (machi.isNotEmpty()) {
             val mjPlayer = player as? com.mahjongplay.game.MahjongPlayer
-            mjPlayer?.riichiActionBarOverride = Component.text("出牌：${discard.displayName}", MJColor.AQUA)
-                .append(Component.text(" ｜ 聽：", MJColor.YELLOW))
+            mjPlayer?.riichiActionBarOverride = com.mahjongplay.interaction.ActionBarHUD.tile(discard)
+                .append(Component.text(" ➜   ", MJColor.GRAY))
+                .append(Props.glyph(0xE946))
                 .append(com.mahjongplay.util.machiText(machi))
         } else {
             clearTenpaiPreview(playerUUID)
@@ -404,6 +448,7 @@ class BoardRenderer(
     }
 
     fun spawnActionOptions(playerUUID: String, options: List<ActionDisplayOption>) {
+        if (game.status != GameStatus.PLAYING) return
         clearActionOptions(playerUUID)
         if (options.isEmpty()) return
 
@@ -419,49 +464,57 @@ class BoardRenderer(
 
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
-        val dirOffset = 0.85 + DEPTH + HEIGHT + 0.1
-        val actionY = surfaceY + HEIGHT + 0.65
-
-        val totalWidth = options.size * ACTION_BUTTON_SPACING
-        val startOffset = (totalWidth - ACTION_BUTTON_SPACING) / 2.0
+        val dirOffset = 0.85 + DEPTH + HEIGHT
 
         val displays = mutableListOf<ActionDisplay>()
         val ownerBukkit = Bukkit.getPlayer(UUID.fromString(playerUUID))
 
         options.forEachIndexed { index, option ->
-            val offset = index * ACTION_BUTTON_SPACING
-            val x = tableCenter.x + dir[0] * dirOffset + perp[0] * (startOffset - offset)
-            val z = tableCenter.z + dir[1] * dirOffset + perp[1] * (startOffset - offset)
-            val loc = Location(world, x, actionY, z)
+            val x = tableCenter.x + dir[0] * dirOffset + perp[0] * ACTION_SIDE
+            val z = tableCenter.z + dir[1] * dirOffset + perp[1] * ACTION_SIDE
+            val loc = Location(world, x, surfaceY + 0.3 + index * ACTION_BUTTON_SPACING, z)
 
-            val textDisplay = world.spawnEntity(loc, EntityType.TEXT_DISPLAY) as TextDisplay
-            textDisplay.isPersistent = false
-            textDisplay.billboard = Display.Billboard.CENTER
-            textDisplay.backgroundColor = Color.fromARGB(60, 0, 0, 0)
-            textDisplay.brightness = Display.Brightness(15, 15)
-            textDisplay.text(
-                Component.text(option.label, option.color).decorate(TextDecoration.BOLD)
-            )
-            textDisplay.alignment = TextDisplay.TextAlignment.CENTER
-            textDisplay.setViewRange(0.3f)
-            textDisplay.setVisibleByDefault(false)
+            val display = Props.spawn(loc, keyName(option) + "_stand", 0.32, billboard = Display.Billboard.CENTER)
+            display.setVisibleByDefault(false)
+            ownerBukkit?.showEntity(MahjongPlayPlugin.instance, display)
+            val label = option.data.takeIf { it.isNotEmpty() && it != "enter_mode" && it != "cancel_riichi" }?.let { data ->
+                val tiles = data.split(",").mapNotNull { it.trim().toIntOrNull() }.mapNotNull { MahjongTile.entries.getOrNull(it) }
+                var content: Component = Component.empty()
+                if (tiles.isEmpty()) content = Component.text(option.label, option.color)
+                else tiles.forEach { content = content.append(Props.glyph(0xEA00 + it.ordinal)) }
+                Props.label(loc.clone().add(perp[0] * 0.45, -0.08, perp[1] * 0.45), content, 0.3f).also { text ->
+                    text.setVisibleByDefault(false)
+                    ownerBukkit?.showEntity(MahjongPlayPlugin.instance, text)
+                }
+            }
 
-            val scaleMatrix = org.joml.Matrix4f().scale(0.6f)
-            textDisplay.setTransformationMatrix(scaleMatrix)
-
-            ownerBukkit?.showEntity(MahjongPlayPlugin.instance, textDisplay)
-
-            val interLoc = Location(world, x, actionY - 0.1, z)
+            val interLoc = Location(world, x, loc.y - 0.16, z)
             val interaction = world.spawnEntity(interLoc, EntityType.INTERACTION) as org.bukkit.entity.Interaction
             interaction.isPersistent = false
-            interaction.interactionWidth = 0.4f
-            interaction.interactionHeight = 0.4f
+            interaction.interactionWidth = 0.32f
+            interaction.interactionHeight = 0.32f
             interaction.isResponsive = false
 
-            displays += ActionDisplay(textDisplay, interaction, option.behavior, option.data, playerUUID, option.subOptions)
+            displays += ActionDisplay(display, label, interaction, option.behavior, option.data, playerUUID, option.subOptions)
         }
 
         actionDisplays[playerUUID] = displays
+    }
+
+    private fun keyName(option: ActionDisplayOption): String = when {
+        option.data == "cancel_riichi" -> "common/key_pass"
+        else -> when (option.behavior) {
+            MahjongGameBehavior.CHII -> "key_chii"
+            MahjongGameBehavior.PON, MahjongGameBehavior.PON_OR_CHII -> "key_pon"
+            MahjongGameBehavior.KAN, MahjongGameBehavior.MINKAN, MahjongGameBehavior.ANKAN,
+            MahjongGameBehavior.ANKAN_OR_KAKAN, MahjongGameBehavior.KAKAN -> "key_kan"
+            MahjongGameBehavior.RON, MahjongGameBehavior.CHAN_KAN -> "key_ron"
+            MahjongGameBehavior.TSUMO -> "key_tsumo"
+            MahjongGameBehavior.RIICHI, MahjongGameBehavior.DOUBLE_RIICHI -> "key_riichi"
+            MahjongGameBehavior.KITA -> "key_kita"
+            MahjongGameBehavior.KYUUSHU_KYUUHAI -> "key_kyuushu"
+            else -> "common/key_pass"
+        }
     }
 
     fun expandSubMenu(playerUUID: String, subOptions: List<ActionDisplayOption>) {
@@ -475,7 +528,8 @@ class BoardRenderer(
 
     fun clearActionOptions(playerUUID: String) {
         actionDisplays.remove(playerUUID)?.forEach { ad ->
-            ad.textDisplay.remove()
+            ad.display.remove()
+            ad.label?.remove()
             ad.interaction.remove()
         }
     }
@@ -709,82 +763,54 @@ class BoardRenderer(
         val seatIndex = game.seat.indexOf(player)
         if (seatIndex < 0) return
 
-        riichiIndicatorDisplays.remove(player.uuid)?.remove()
+        riichiIndicatorDisplays.remove(player.uuid)?.forEach { it.remove() }
 
         if (!player.riichi && !player.doubleRiichi) return
 
         val dir = seatDirection(seatIndex)
         val yaw = seatYaw(seatIndex)
-        val halfSixTiles = WIDTH * 6 / 2.0
-        val indicatorOffset = halfSixTiles * 0.6
+        val indicatorOffset = RIICHI_OFFSET
         val x = tableCenter.x + dir[0] * indicatorOffset
         val z = tableCenter.z + dir[1] * indicatorOffset
-        val loc = Location(world, x, surfaceY + 0.02, z)
-        loc.yaw = yaw
-
-        val textDisplay = world.spawnEntity(loc, EntityType.TEXT_DISPLAY) as TextDisplay
-        textDisplay.isPersistent = false
-        val label = if (player.doubleRiichi) "W立直" else "立直"
-        textDisplay.text(
-            Component.text(label, MJColor.LIGHT_PURPLE, TextDecoration.BOLD)
-        )
-        textDisplay.billboard = Display.Billboard.FIXED
-        textDisplay.backgroundColor = Color.fromARGB(0, 0, 0, 0)
-        textDisplay.brightness = Display.Brightness(15, 15)
-        textDisplay.isSeeThrough = false
-        textDisplay.setViewRange(0.5f)
-        textDisplay.alignment = TextDisplay.TextAlignment.CENTER
-
-        val transform = org.joml.Matrix4f()
-        transform.rotateX(Math.toRadians(-90.0).toFloat())
-        transform.scale(0.35f)
-        textDisplay.setTransformationMatrix(transform)
-
-        riichiIndicatorDisplays[player.uuid] = textDisplay
-    }
-
-    private fun clearRiichiIndicators() {
-        riichiIndicatorDisplays.values.forEach { it.remove() }
-        riichiIndicatorDisplays.clear()
-    }
-
-    private fun spawnBotNameTags() {
-        clearBotNameTags()
-        game.seat.forEachIndexed { seatIndex, player ->
-            if (player !is MahjongBot) return@forEachIndexed
-
-            val dir = seatDirection(seatIndex)
-            val nameTagDistance = 3.2
-            val x = tableCenter.x + dir[0] * nameTagDistance
-            val z = tableCenter.z + dir[1] * nameTagDistance
-            val loc = Location(world, x, surfaceY + 0.5, z)
-
-            val textDisplay = world.spawnEntity(loc, EntityType.TEXT_DISPLAY) as TextDisplay
-            textDisplay.isPersistent = false
-            textDisplay.text(
-                Component.text("\uD83E\uDD16 ", MJColor.GRAY)
-                    .append(Component.text(player.displayName, MJColor.GOLD))
-            )
-            textDisplay.billboard = Display.Billboard.CENTER
-            textDisplay.backgroundColor = Color.fromARGB(160, 0, 0, 0)
-            textDisplay.brightness = Display.Brightness(15, 15)
-            textDisplay.isSeeThrough = false
-            textDisplay.setViewRange(0.8f)
-
-            botNameDisplays += textDisplay
+        val perp = seatPerpendicular(seatIndex)
+        val offsets = if (player.doubleRiichi) listOf(-0.24, 0.24) else listOf(0.0)
+        riichiIndicatorDisplays[player.uuid] = offsets.map { offset ->
+            Props.spawn(Location(world, x + perp[0] * offset, surfaceY + 0.01, z + perp[1] * offset), "riichi_stick", 0.45, yaw.toDouble())
         }
     }
 
-    private fun clearBotNameTags() {
-        botNameDisplays.forEach { it.remove() }
-        botNameDisplays.clear()
+    private fun clearRiichiIndicators() {
+        riichiIndicatorDisplays.values.flatten().forEach { it.remove() }
+        riichiIndicatorDisplays.clear()
+    }
+
+    private fun spawnSeatPlates() {
+        clearSeatPlates()
+        val seats = game.seat.indices.map { index ->
+            val dir = seatDirection(index)
+            tableCenter.x + dir[0] * 3.0 to tableCenter.z + dir[1] * 3.0
+        }
+        val created = SeatPlates(world, tableCenter.x, tableCenter.z, 1.5, rimY, seats)
+        game.seat.forEachIndexed { index, player ->
+            if (player is MahjongBot) created.show(index, "bot", null)
+            else created.show(index, "seated", null, UUID.fromString(player.uuid))
+        }
+        plates = created
+    }
+
+    private fun clearSeatPlates() {
+        plates?.clear()
+        plates = null
     }
 
     fun refreshVisibility() {
         game.players.forEach { updateVisibility(it) }
         actionDisplays.forEach { (uuid, displays) ->
             val owner = Bukkit.getPlayer(UUID.fromString(uuid)) ?: return@forEach
-            displays.forEach { owner.showEntity(MahjongPlayPlugin.instance, it.textDisplay) }
+            displays.forEach { ad ->
+                owner.showEntity(MahjongPlayPlugin.instance, ad.display)
+                ad.label?.let { owner.showEntity(MahjongPlayPlugin.instance, it) }
+            }
         }
     }
 
@@ -883,10 +909,14 @@ class BoardRenderer(
         fuuroDisplays.clear()
         nukiDoraDisplays.values.flatten().forEach { it.remove() }
         nukiDoraDisplays.clear()
-        actionDisplays.values.flatten().forEach { ad -> ad.textDisplay.remove(); ad.interaction.remove() }
+        actionDisplays.values.flatten().forEach { ad -> ad.display.remove(); ad.label?.remove(); ad.interaction.remove() }
         actionDisplays.clear()
         clearFloatingCenterTile()
-        clearBotNameTags()
+        clearSeatPlates()
         clearRiichiIndicators()
+        turnLamp?.remove()
+        turnLamp = null
+        dealerMarker?.remove()
+        dealerMarker = null
     }
 }

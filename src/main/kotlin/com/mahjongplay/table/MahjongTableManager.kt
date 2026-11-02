@@ -1,5 +1,6 @@
 package com.mahjongplay.table
 
+import com.mahjongplay.display.PlayerFaces
 import com.mahjongplay.display.BoardRenderer
 import com.mahjongplay.game.GameStatus
 import com.mahjongplay.game.MahjongBot
@@ -58,7 +59,7 @@ class MahjongTableManager : GameRegistry {
             renderer = renderer,
             bridge = bridge,
             center = center,
-            table = MahjongTable(center, modeText, playerCount, removedSeats, quarter),
+            table = MahjongTable(center, modeText, playerCount, removedSeats, quarter, tableModel(playerCount, taiwan)),
             humanId = humanId,
             ownerUUID = creatorUUID,
             ownerName = creatorName,
@@ -69,6 +70,12 @@ class MahjongTableManager : GameRegistry {
         autoSave()
 
         return session
+    }
+
+    private fun tableModel(playerCount: Int, taiwan: Boolean): String = when {
+        taiwan -> "table_taiwan"
+        playerCount == 3 -> "table_sanma"
+        else -> "table_riichi"
     }
 
     private fun modeText(gameLength: MahjongRule.GameLength, playerCount: Int, taiwan: Boolean): String = when {
@@ -92,7 +99,7 @@ class MahjongTableManager : GameRegistry {
         val renderer = BoardRenderer(game, session.center, session.quarter)
         val bridge = PaperGameBridge(game, renderer, this)
         game.listener = bridge
-        val table = MahjongTable(session.center, modeText, playerCount, emptySet(), session.quarter)
+        val table = MahjongTable(session.center, modeText, playerCount, emptySet(), session.quarter, tableModel(playerCount, taiwan))
 
         val newSession = session.copy(game = game, renderer = renderer, bridge = bridge, table = table, humanId = "[$modeText]${tableNum}號桌")
         tables[session.tableId] = newSession
@@ -152,6 +159,7 @@ class MahjongTableManager : GameRegistry {
             if (!session.game.addBot("電腦$botNum")) break
         }
 
+        cancelCountdown(session.tableId)
         session.table.hideActionButtons()
         startInteractionToTable.values.removeAll { it == session.tableId }
         readyInteractionToTable.values.removeAll { it == session.tableId }
@@ -203,13 +211,23 @@ class MahjongTableManager : GameRegistry {
     fun updateTableDisplay(session: MahjongTableSession) {
         ScheduleUtil.region(session.center) {
             val isWaiting = session.game.status == GameStatus.WAITING
-            val playerInfo = session.game.players.map { it.displayName to it.ready }
             session.table.updateJoinDisplay(
                 playerCount = session.game.players.size,
                 maxPlayers = session.game.rule.playerCount,
-                waiting = isWaiting,
-                playerInfo = playerInfo
+                waiting = isWaiting
             )
+            session.table.updatePlates((0 until session.game.rule.playerCount).map { index ->
+                if (!isWaiting) return@map null
+                val player = session.game.players.getOrNull(index) ?: return@map if (index in session.table.removedSeats) null else Triple("empty", null, null)
+                val state = when {
+                    player is MahjongBot -> "bot"
+                    player.ready -> "ready"
+                    else -> "seated"
+                }
+                if (player is MahjongBot) return@map Triple(state, null, null)
+                PlayerFaces.of(player.uuid) { updateTableDisplay(session) }
+                Triple(state, null, java.util.UUID.fromString(player.uuid))
+            })
             startInteractionToTable.values.removeAll { it == session.tableId }
             readyInteractionToTable.values.removeAll { it == session.tableId }
             session.table.startInteraction?.uniqueId?.let { startInteractionToTable[it] = session.tableId }

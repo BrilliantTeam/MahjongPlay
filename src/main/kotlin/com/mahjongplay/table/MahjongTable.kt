@@ -1,5 +1,8 @@
 package com.mahjongplay.table
 
+import com.mahjongplay.display.Props
+import com.mahjongplay.display.ReadyToggle
+import com.mahjongplay.display.SeatPlates
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -9,6 +12,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Display
 import org.bukkit.entity.EntityType
 import org.bukkit.entity.Interaction
+import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.TextDisplay
 import java.util.UUID
 
@@ -18,6 +22,7 @@ class MahjongTable(
     val playerCount: Int = 4,
     initialRemovedSeats: Set<Int> = emptySet(),
     val quarter: Int = 0,
+    private val tableModel: String = "table_riichi",
 ) {
 
     companion object {
@@ -62,12 +67,19 @@ class MahjongTable(
         private set
     var joinInteraction: Interaction? = null
         private set
-    var startTextDisplay: TextDisplay? = null
-        private set
+    private var startDisplay: ItemDisplay? = null
     var startInteraction: Interaction? = null
         private set
-    var readyTextDisplay: TextDisplay? = null
-        private set
+    private var readyToggle: ReadyToggle? = null
+    private var playingDisplay: ItemDisplay? = null
+    private var seatedReady: Map<java.util.UUID, Boolean> = emptyMap()
+    private var tableDisplay: ItemDisplay? = null
+    private var signDisplay: ItemDisplay? = null
+
+    private val plates = SeatPlates(
+        center.world, center.x, center.z, 1.5, center.blockY + 1.0 + 3.0 / 16.0,
+        seatOffsets.map { (dx, dz) -> center.blockX + dx + 0.5 to center.blockZ + dz + 0.5 }
+    )
     var readyInteraction: Interaction? = null
         private set
 
@@ -80,16 +92,11 @@ class MahjongTable(
         for (dx in -1..1) {
             for (dz in -1..1) {
                 val fenceLoc = Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble())
-                fenceLoc.block.type = Material.OAK_FENCE
+                fenceLoc.block.type = Material.BARRIER
                 placedBlocks += fenceLoc
 
-                val topLoc = Location(world, (cx + dx).toDouble(), (cy + 1).toDouble(), (cz + dz).toDouble())
-                if (dx == 0 && dz == 0) {
-                    topLoc.block.type = Material.LIGHT_BLUE_CARPET
-                } else {
-                    topLoc.block.type = Material.GREEN_CARPET
-                }
-                placedBlocks += topLoc
+                val topBlock = Location(world, (cx + dx).toDouble(), (cy + 1).toDouble(), (cz + dz).toDouble()).block
+                if (topBlock.type == Material.LIGHT_BLUE_CARPET || topBlock.type == Material.GREEN_CARPET) topBlock.type = Material.AIR
             }
         }
 
@@ -129,17 +136,20 @@ class MahjongTable(
 
     private fun spawnJoinDisplay() {
         val world = center.world
+        tableDisplay = Props.table(world, center.x, center.blockY, center.z, tableModel, 3.5, -(quarter and 3) * 90.0)
+        signDisplay = Props.spawn(Location(center.world, center.x, center.blockY + 2.5, center.z), "sign_stand", 0.5, billboard = Display.Billboard.VERTICAL)
         val displayLoc = Location(world, center.x, center.blockY + 2.5, center.z)
 
         val textDisplay = world.spawnEntity(displayLoc, EntityType.TEXT_DISPLAY) as TextDisplay
         textDisplay.isPersistent = false
-        textDisplay.billboard = Display.Billboard.CENTER
-        textDisplay.backgroundColor = Color.fromARGB(180, 0, 0, 0)
+        textDisplay.billboard = Display.Billboard.VERTICAL
+        textDisplay.backgroundColor = Color.fromARGB(90, 0, 0, 0)
         textDisplay.brightness = Display.Brightness(15, 15)
         textDisplay.isSeeThrough = false
         textDisplay.setViewRange(0.5f)
         textDisplay.alignment = TextDisplay.TextAlignment.CENTER
         joinTextDisplay = textDisplay
+        layoutStrip()
 
         val interactionLoc = Location(world, center.x, center.blockY + 2.2, center.z)
         val interaction = world.spawnEntity(interactionLoc, EntityType.INTERACTION) as Interaction
@@ -156,94 +166,92 @@ class MahjongTable(
         val world = center.world
         val btnY = center.blockY + 1.8
 
-        val readyLoc = Location(world, center.x - 0.5, btnY, center.z)
-        val readyTd = world.spawnEntity(readyLoc, EntityType.TEXT_DISPLAY) as TextDisplay
-        readyTd.isPersistent = false
-        readyTd.billboard = Display.Billboard.CENTER
-        readyTd.backgroundColor = Color.fromARGB(160, 0, 80, 0)
-        readyTd.brightness = Display.Brightness(15, 15)
-        readyTd.isSeeThrough = false
-        readyTd.setViewRange(0.4f)
-        readyTd.alignment = TextDisplay.TextAlignment.CENTER
-        readyTd.text(Component.text(" ✓ 準備 ", MJColor.GREEN))
-        readyTextDisplay = readyTd
-
-        val readyIntLoc = Location(world, center.x - 0.5, btnY - 0.15, center.z)
-        val readyInt = world.spawnEntity(readyIntLoc, EntityType.INTERACTION) as Interaction
+        readyToggle = ReadyToggle(Location(world, center.x - 0.4, btnY, center.z)).also { it.update(seatedReady) }
+        val readyInt = world.spawnEntity(Location(world, center.x - 0.4, btnY - 0.22, center.z), EntityType.INTERACTION) as Interaction
         readyInt.isPersistent = false
-        readyInt.interactionWidth = 0.8f
-        readyInt.interactionHeight = 0.4f
+        readyInt.interactionWidth = 0.45f
+        readyInt.interactionHeight = 0.45f
         readyInt.isResponsive = false
         readyInteraction = readyInt
 
-        val startLoc = Location(world, center.x + 0.5, btnY, center.z)
-        val startTd = world.spawnEntity(startLoc, EntityType.TEXT_DISPLAY) as TextDisplay
-        startTd.isPersistent = false
-        startTd.billboard = Display.Billboard.CENTER
-        startTd.backgroundColor = Color.fromARGB(160, 120, 60, 0)
-        startTd.brightness = Display.Brightness(15, 15)
-        startTd.isSeeThrough = false
-        startTd.setViewRange(0.4f)
-        startTd.alignment = TextDisplay.TextAlignment.CENTER
-        startTd.text(Component.text(" ▶ 開始 ", MJColor.GOLD))
-        startTextDisplay = startTd
-
-        val startIntLoc = Location(world, center.x + 0.5, btnY - 0.15, center.z)
-        val startInt = world.spawnEntity(startIntLoc, EntityType.INTERACTION) as Interaction
+        startDisplay = Props.spawn(Location(world, center.x + 0.4, btnY, center.z), startModel(), 0.45, billboard = Display.Billboard.VERTICAL)
+        val startInt = world.spawnEntity(Location(world, center.x + 0.4, btnY - 0.22, center.z), EntityType.INTERACTION) as Interaction
         startInt.isPersistent = false
-        startInt.interactionWidth = 0.8f
-        startInt.interactionHeight = 0.4f
+        startInt.interactionWidth = 0.45f
+        startInt.interactionHeight = 0.45f
         startInt.isResponsive = false
         startInteraction = startInt
     }
 
     fun hideActionButtons() {
-        startTextDisplay?.remove(); startTextDisplay = null
+        startDisplay?.remove(); startDisplay = null
         startInteraction?.remove(); startInteraction = null
-        readyTextDisplay?.remove(); readyTextDisplay = null
+        readyToggle?.remove(); readyToggle = null
         readyInteraction?.remove(); readyInteraction = null
     }
 
     fun showActionButtons() {
-        if (startTextDisplay == null) spawnActionButtons()
+        if (startDisplay == null) spawnActionButtons()
     }
 
-    fun updateJoinDisplay(playerCount: Int, maxPlayers: Int, waiting: Boolean, playerInfo: List<Pair<String, Boolean>> = emptyList()) {
-        val textDisplay = joinTextDisplay ?: return
+    fun updateJoinDisplay(playerCount: Int, maxPlayers: Int, waiting: Boolean) {
+        joinWaiting = waiting
+        if (waiting) {
+            playingDisplay?.remove()
+            playingDisplay = null
+        } else if (playingDisplay == null) {
+            playingDisplay = Props.spawn(Location(center.world, center.x, center.blockY + 2.5, center.z), "common/playing_stand", 0.38, billboard = Display.Billboard.VERTICAL)
+        }
         if (waiting) {
             if (playerCount > 0) showActionButtons() else hideActionButtons()
-            var text = Component.text("🀄 麻將 ", MJColor.GOLD).decorate(TextDecoration.BOLD)
-                .append(Component.text("[$gameLengthText]", MJColor.AQUA).decoration(TextDecoration.BOLD, false))
-                .append(Component.newline())
-                .append(Component.text("右鍵點擊加入/退出", MJColor.GREEN).decoration(TextDecoration.BOLD, false))
-                .append(Component.newline())
-                .append(Component.text("$playerCount/$maxPlayers 玩家", MJColor.YELLOW).decoration(TextDecoration.BOLD, false))
-
-            playerInfo.forEach { (name, ready) ->
-                val readyMark = if (ready) " ✓" else " ✗"
-                val color = if (ready) MJColor.GREEN else MJColor.GRAY
-                text = text.append(Component.newline())
-                    .append(Component.text("$name$readyMark", color).decoration(TextDecoration.BOLD, false))
-            }
-            textDisplay.text(text)
         } else {
-            textDisplay.text(
-                Component.text("🀄 麻將 ", MJColor.GOLD).decorate(TextDecoration.BOLD)
-                    .append(Component.text("[$gameLengthText]", MJColor.AQUA).decoration(TextDecoration.BOLD, false))
-                    .append(Component.newline())
-                    .append(Component.text("牌局進行中", MJColor.RED).decoration(TextDecoration.BOLD, false))
-            )
+            hideActionButtons()
         }
+        renderJoinText()
+    }
+
+    private var joinWaiting = true
+
+    private fun startModel(): String =
+        if (seatedReady.isNotEmpty() && seatedReady.values.all { it }) "common/start_stand" else "common/start_off_stand"
+
+    private fun refreshActionStates(entries: List<Triple<String, *, java.util.UUID?>?>) {
+        seatedReady = entries.filterNotNull().mapNotNull { entry -> entry.third?.let { it to (entry.first == "ready") } }.toMap()
+        readyToggle?.update(seatedReady)
+        startDisplay?.setItemStack(Props.item(startModel()))
+    }
+
+    private fun renderJoinText() {
+        val textDisplay = joinTextDisplay ?: return
+        val mode = Component.text(gameLengthText, MJColor.AQUA)
+        val state = if (joinWaiting) Props.glyph(Props.MOUSE).append(Component.text("  ")) else Component.empty()
+        textDisplay.text(if (joinWaiting || plates.hasSlots()) mode.append(Component.newline()).append(state).append(plates.slots()) else mode)
+        layoutStrip()
+    }
+
+    private fun layoutStrip(counting: Boolean = false) {
+        val twoLines = counting || joinWaiting || plates.hasSlots()
+        val slots = if (counting) 0.6 else plates.slotsWidth() + if (joinWaiting) 0.45 else 0.0
+        val half = maxOf(Props.textWidth(gameLengthText), if (twoLines) slots else 0.0) / 2 + 0.05
+        val middle = if (twoLines) 0.25 else 0.125
+        signDisplay?.let { Props.placeInStrip(it, -half - 0.28, middle, 0.5) }
+        playingDisplay?.let { Props.placeInStrip(it, half + 0.22, middle, 0.38) }
     }
 
     fun showCountdown(seconds: Int) {
         val textDisplay = joinTextDisplay ?: return
         textDisplay.text(
-            Component.text("🀄 麻將 ", MJColor.GOLD).decorate(TextDecoration.BOLD)
-                .append(Component.text("[$gameLengthText]", MJColor.AQUA).decoration(TextDecoration.BOLD, false))
+            Component.text(gameLengthText, MJColor.AQUA)
                 .append(Component.newline())
-                .append(Component.text("${seconds}秒後開始…", MJColor.YELLOW).decoration(TextDecoration.BOLD, false))
+                .append(Props.glyph(Props.CLOCK)).append(Component.text(" ")).append(Props.number(seconds))
         )
+        layoutStrip(counting = true)
+    }
+
+    fun updatePlates(entries: List<Triple<String, Component?, java.util.UUID?>?>) {
+        entries.forEachIndexed { index, entry -> plates.show(index, entry?.first, entry?.second, entry?.third) }
+        refreshActionStates(entries)
+        renderJoinText()
     }
 
     fun isProtectedBlock(loc: Location): Boolean {
@@ -257,9 +265,7 @@ class MahjongTable(
         val cz = center.blockZ
         for (dx in -1..1) {
             for (dz in -1..1) {
-                if (Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble()).block.type != Material.OAK_FENCE) return false
-                val expectedTop = if (dx == 0 && dz == 0) Material.LIGHT_BLUE_CARPET else Material.GREEN_CARPET
-                if (Location(world, (cx + dx).toDouble(), (cy + 1).toDouble(), (cz + dz).toDouble()).block.type != expectedTop) return false
+                if (Location(world, (cx + dx).toDouble(), cy.toDouble(), (cz + dz).toDouble()).block.type.let { it != Material.BARRIER && it != Material.OAK_FENCE }) return false
             }
         }
         return true
@@ -283,6 +289,10 @@ class MahjongTable(
     fun removeEntities() {
         joinTextDisplay?.remove(); joinTextDisplay = null
         joinInteraction?.remove(); joinInteraction = null
+        tableDisplay?.remove(); tableDisplay = null
+        signDisplay?.remove(); signDisplay = null
+        playingDisplay?.remove(); playingDisplay = null
+        plates.clear()
         hideActionButtons()
     }
 
@@ -291,6 +301,10 @@ class MahjongTable(
         placedBlocks.clear()
         joinTextDisplay?.remove(); joinTextDisplay = null
         joinInteraction?.remove(); joinInteraction = null
+        tableDisplay?.remove(); tableDisplay = null
+        signDisplay?.remove(); signDisplay = null
+        playingDisplay?.remove(); playingDisplay = null
+        plates.clear()
         hideActionButtons()
     }
 }

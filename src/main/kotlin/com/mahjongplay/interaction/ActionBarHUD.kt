@@ -1,5 +1,6 @@
 package com.mahjongplay.interaction
 
+import com.mahjongplay.display.Props
 import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.game.MahjongPlayer
 import com.mahjongplay.game.MahjongPlayerBase
@@ -31,19 +32,22 @@ object ActionBarHUD {
                 return@forEach
             }
 
-            val seatWind = seatWindOf(game, mjPlayer)
-            val doraStr = game.doraIndicators.joinToString(",") { it.doraFromIndicator(game.rule.isSanma).displayName }
-
+            val gap = Component.text("   ")
             val taiwan = game.rule.taiwan
-            var bar = Component.text("${round.displayName()}", MJColor.GOLD)
-                .append(Component.text("｜${if (taiwan) "連莊" else "本場"}${round.honba}", MJColor.YELLOW))
-                .append(Component.text("｜$seatWind", MJColor.AQUA))
-                .append(Component.text("｜牌山$wallSize", MJColor.GREEN))
-                .append(Component.text("｜${mjPlayer.points}點", MJColor.WHITE))
-                .append(
-                    if (taiwan) Component.text("｜花：${mjPlayer.nukiDoraTiles.toList().joinToString("") { it.displayName }.ifEmpty { "無" }}", MJColor.RED)
-                    else Component.text("｜寶牌：$doraStr", MJColor.RED)
-                )
+            var bar = tile(MahjongTile.valueOf(round.wind.name)).append(Component.text("${round.round + 1}", MJColor.GOLD))
+                .append(gap).append(Props.glyph(HONBA)).append(Component.text("${round.honba}", MJColor.YELLOW))
+                .append(gap).append(seatWindOf(game, mjPlayer))
+                .append(gap).append(Props.glyph(WALL)).append(Component.text("$wallSize", MJColor.GREEN))
+                .append(gap).append(Props.glyph(POINTS)).append(Component.text("${mjPlayer.points}", MJColor.WHITE))
+            if (taiwan) {
+                mjPlayer.nukiDoraTiles.toList().takeIf { it.isNotEmpty() }?.let { flowers ->
+                    bar = bar.append(gap)
+                    flowers.forEach { bar = bar.append(tile(it)) }
+                }
+            } else {
+                bar = bar.append(gap).append(Props.glyph(DORA))
+                game.doraIndicators.forEach { bar = bar.append(tile(it.doraFromIndicator(game.rule.isSanma))) }
+            }
 
             val machi = if (taiwan) {
                 game.taiwanMachiPreview(mjPlayer).takeIf { it.isNotEmpty() }?.let { machiText(it) }
@@ -52,19 +56,27 @@ object ActionBarHUD {
             } else {
                 mjPlayer.previewMachiTiles.takeIf { it.isNotEmpty() }?.let { machiText(it) }
             }
-            if (machi != null) {
-                bar = bar.append(Component.text("｜聽：", MJColor.LIGHT_PURPLE)).append(machi)
-            }
+            if (machi != null) bar = bar.append(gap).append(Props.glyph(WAIT)).append(machi)
 
             player.sendActionBar(bar)
         }
     }
 
-    private fun seatWindOf(game: MahjongGame, player: MahjongPlayerBase): String {
+    private fun seatWindOf(game: MahjongGame, player: MahjongPlayerBase): Component {
         val pc = game.rule.playerCount
-        val seatOrder = List(pc) { game.seat[(game.round.round + it) % pc] }
-        val windNames = if (pc == 3) listOf("東（莊）", "南", "西") else listOf("東（莊）", "南", "西", "北")
-        val idx = seatOrder.indexOf(player)
-        return if (idx in windNames.indices) windNames[idx] else "?"
+        val idx = List(pc) { game.seat[(game.round.round + it) % pc] }.indexOf(player)
+        if (idx < 0) return Component.text("?")
+        val wind = tile(MahjongTile.entries[MahjongTile.EAST.ordinal + idx])
+        return if (idx == 0) wind.append(Props.glyph(DEALER)) else wind
     }
+
+    fun tile(tile: MahjongTile, color: net.kyori.adventure.text.format.TextColor = net.kyori.adventure.text.format.NamedTextColor.WHITE): Component =
+        Props.glyph(0xE900 + tile.ordinal, color)
+
+    private const val WALL = 0xE942
+    private const val POINTS = 0xE943
+    private const val HONBA = 0xE944
+    private const val DEALER = 0xE945
+    private const val WAIT = 0xE946
+    private const val DORA = 0xE947
 }

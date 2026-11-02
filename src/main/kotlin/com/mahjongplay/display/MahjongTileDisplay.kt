@@ -8,7 +8,6 @@ import org.bukkit.entity.Interaction
 import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.bukkit.Material
 import org.bukkit.entity.Display
 import org.joml.AxisAngle4f
 import org.joml.Matrix4f
@@ -131,10 +130,6 @@ class MahjongTileDisplay(
         private const val HITBOX_MARGIN = 0.02f
         private const val INTERACTION_HEIGHT = TileConstants.HEIGHT + HITBOX_MARGIN
 
-        fun createTileItem(tile: MahjongTile): ItemStack {
-            val item = ItemStack(Material.PAPER)
-            item.editMeta { it.setCustomModelData(tile.code + 1) }
-            return item
-        }
+        fun createTileItem(tile: MahjongTile): ItemStack = Props.item("mahjong/tile/${tile.name.lowercase()}")
     }
 }

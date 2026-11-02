@@ -60,6 +60,8 @@ class MahjongGame(
     private val seatOrderFromDealer: List<MahjongPlayerBase>
         get() = List(playerCount) { seat[(round.round + it) % playerCount] }
 
+    val dealer: MahjongPlayerBase get() = seatOrderFromDealer[0]
+
     private val liveWall: Int get() = (wall.size - MahjongRule.TAIWAN_RESERVE).coerceAtLeast(0)
 
     val wallSize: Int get() = if (rule.taiwan) liveWall else wall.size

@@ -1,5 +1,6 @@
 package com.mahjongplay.ui
 
+import com.mahjongplay.model.MahjongTile
 import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.game.MahjongPlayerBase
 import com.mahjongplay.model.MahjongGameBehavior
@@ -20,9 +21,6 @@ class TurnTimerBar(private val game: MahjongGame) {
     private var activePlayerUUID: String? = null
     private var activeActions: List<MahjongGameBehavior> = emptyList()
     private val shownPlayerUUIDs = mutableSetOf<UUID>()
-
-    private val windNames: List<String>
-        get() = if (game.rule.playerCount == 3) listOf("東", "南", "西") else listOf("東", "南", "西", "北")
 
     fun show() {
         if (bar != null) return
@@ -89,35 +87,21 @@ class TurnTimerBar(private val game: MahjongGame) {
         val seatOrder = if (game.seat.isEmpty()) emptyList()
         else List(pc) { game.seat[(game.round.round + it) % pc] }
 
-        val round = game.round
-        var title = Component.text("${round.displayName()} ", MJColor.GOLD)
-            .append(Component.text("牌山${game.wallSize} ", MJColor.GREEN))
-            .append(Component.text("｜ ", MJColor.DARK_GRAY))
-
+        var title: Component = Component.empty()
         seatOrder.forEachIndexed { idx, player ->
-            val wind = windNames.getOrElse(idx) { "?" }
-            val isActive = player.uuid == activePlayerUUID
-            val name = player.displayName
-
-            if (isActive) {
-                val secColor = if (remainSec <= 5) MJColor.RED else MJColor.WHITE
-                title = title
-                    .append(Component.text("$wind（", MJColor.YELLOW))
-                    .append(Component.text(name, MJColor.AQUA))
-                    .append(Component.text("） ", MJColor.YELLOW))
-                    .append(Component.text("${remainSec}s", secColor))
-            } else {
-                title = title
-                    .append(Component.text("$wind（", MJColor.GRAY))
-                    .append(Component.text(name, MJColor.GRAY))
-                    .append(Component.text("）", MJColor.GRAY))
-            }
-
-            if (idx < seatOrder.size - 1) {
-                title = title.append(Component.text(" ｜ ", MJColor.DARK_GRAY))
-            }
+            if (player.uuid != activePlayerUUID) return@forEachIndexed
+            val secColor = if (remainSec <= 5) MJColor.RED else MJColor.WHITE
+            title = com.mahjongplay.interaction.ActionBarHUD.tile(MahjongTile.entries[MahjongTile.EAST.ordinal + idx])
+                .append(Component.text(" "))
+                .append(com.mahjongplay.display.PlayerFaces.of(player.uuid))
+                .append(Component.text(" ${player.displayName}   ", MJColor.AQUA))
+                .append(com.mahjongplay.display.Props.clock(remainSec.toLong(), (durationMs / 1000).toInt()))
+                .append(Component.text(" $remainSec", secColor))
         }
-
+        if (activePlayerUUID == null) {
+            title = com.mahjongplay.interaction.ActionBarHUD.tile(MahjongTile.valueOf(game.round.wind.name))
+                .append(Component.text("${game.round.round + 1}", MJColor.GOLD))
+        }
         return title
     }
 
