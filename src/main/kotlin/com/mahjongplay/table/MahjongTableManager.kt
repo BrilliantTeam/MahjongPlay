@@ -8,6 +8,7 @@ import com.mahjongplay.game.MahjongGame
 import com.mahjongplay.interaction.GameRegistry
 import com.mahjongplay.interaction.PaperGameBridge
 import com.mahjongplay.model.MahjongRule
+import com.mahjongplay.util.styled
 import com.mahjongplay.util.CancelTask
 import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.actionBarMsg
@@ -151,7 +152,7 @@ class MahjongTableManager : GameRegistry {
         if (session.game.players.isEmpty()) return "沒有玩家"
 
         val unready = session.game.players.filter { it.isRealPlayer && !it.ready }
-        if (unready.isNotEmpty()) return "還有玩家未準備：${unready.joinToString { it.displayName }}"
+        if (unready.isNotEmpty()) return "還有玩家未準備：${unready.joinToString("、") { it.displayName }}"
 
         val pc = session.game.rule.playerCount
         while (session.game.players.size < pc) {
@@ -250,7 +251,7 @@ class MahjongTableManager : GameRegistry {
                 session.table.showCountdown(remaining)
                 session.game.players.forEach { mjp ->
                     Bukkit.getPlayer(UUID.fromString(mjp.uuid))?.actionBarMsg(
-                        Component.text("牌局將在 ${remaining} 秒後開始…", MJColor.GOLD)
+                        styled("牌局將在 <white>$remaining</white> 秒後開始", MJColor.WHITE)
                     )
                 }
                 countdownRemaining[session.tableId] = remaining - 1
@@ -296,7 +297,7 @@ class MahjongTableManager : GameRegistry {
         val target = session.game.players.getOrNull(index) ?: return "座位 $index 沒有玩家"
         if (target.isRealPlayer) {
             leaveTable(target.uuid)
-            Bukkit.getPlayer(UUID.fromString(target.uuid))?.msg("你被踢出了牌桌", MJColor.RED)
+            Bukkit.getPlayer(UUID.fromString(target.uuid))?.msg("您被踢出了牌桌", MJColor.DARK_RED)
         } else {
             session.game.kick(index)
             cancelCountdown(session.tableId)
@@ -446,7 +447,7 @@ class MahjongTableManager : GameRegistry {
     fun notifyIfInterrupted(playerUUID: String, playerBukkit: org.bukkit.entity.Player) {
         if (interruptedPlayers.remove(playerUUID)) {
             ScheduleUtil.globalLater(40L) {
-                playerBukkit.msg("你之前的牌局因伺服器重啟而中斷，非常抱歉！", MJColor.YELLOW)
+                playerBukkit.msg("你之前的牌局因伺服器重啟而中斷，非常抱歉！", MJColor.WHITE)
             }
         }
     }

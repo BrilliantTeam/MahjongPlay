@@ -2,6 +2,8 @@ package com.mahjongplay.table
 
 import com.mahjongplay.game.GameStatus
 import com.mahjongplay.model.MahjongRule
+import com.mahjongplay.util.SEP
+import com.mahjongplay.util.styled
 import com.mahjongplay.util.ScheduleUtil
 import com.mahjongplay.util.msg
 import io.papermc.paper.dialog.Dialog
@@ -14,7 +16,6 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import java.time.Duration
@@ -83,7 +84,7 @@ object MahjongPanel {
             return
         }
         val updated = manager.getSession(session.tableId) ?: return
-        player.msg("已變更為 ${updated.humanId}", MJColor.GREEN)
+        player.msg("已變更為 <white>${updated.humanId}</white>", MJColor.GREEN)
         manage(manager, player, updated)
     }
 
@@ -96,7 +97,7 @@ object MahjongPanel {
         val body = mutableListOf<Component>()
         manageable.forEach { body.add(statusLine(it)) }
         if (current != null) {
-            body.add(Component.text("你在 ${current.humanId}", MJColor.YELLOW))
+            body.add(Component.text("你在 ${current.humanId}", MJColor.WHITE))
         } else if (manageable.isEmpty()) {
             body.add(Component.text("要加入別人的牌桌請到牌桌前右鍵加入區", MJColor.GRAY))
             if (player.hasPermission("mahjongplay.command.create")) {
@@ -130,13 +131,10 @@ object MahjongPanel {
     private fun statusLine(session: MahjongTableSession): Component {
         val game = session.game
         val status = if (game.status == GameStatus.WAITING) "等待中" else "進行中"
-        val names = game.players.joinToString("、") { "${it.displayName}${if (it.ready) "✓" else "✗"}" }
+        val names = game.players.joinToString("、") { "${it.displayName} ${if (it.ready) "<#CFFFC0>已準備" else "<#FF7A7A>未準備"}<gray>" }
         val owner = if (session.ownerName.isEmpty()) "" else "（${session.ownerName}）"
-        val line = Component.text(
-            "${session.humanId}$owner ${game.players.size}/${game.rule.playerCount} $status",
-            MJColor.AQUA
-        )
-        return if (names.isEmpty()) line else line.append(Component.text(" 〔$names〕", MJColor.GRAY))
+        val line = styled("${session.humanId}$owner $SEP <white>${game.players.size}/${game.rule.playerCount}</white> $SEP <gray>$status", MJColor.AQUA)
+        return if (names.isEmpty()) line else line.append(styled(" $SEP $names", MJColor.GRAY))
     }
 
     private fun manageButtons(
@@ -188,7 +186,7 @@ object MahjongPanel {
 
     private fun create(manager: MahjongTableManager, player: Player, center: Location, mode: Mode) {
         if (!player.hasPermission("mahjongplay.command.create")) {
-            player.msg("你沒有權限建立牌桌", MJColor.RED)
+            player.msg("您沒有建立牌桌的權限！", MJColor.DARK_RED)
             return
         }
         val tooClose = manager.getAllSessions().any {
@@ -213,7 +211,7 @@ object MahjongPanel {
             session.table.spawn()
             manager.registerJoinInteraction(session)
         }
-        player.msg("已建立 ${session.humanId}，只有你能管理這張牌桌", MJColor.GREEN)
+        player.msg("已建立 <white>${session.humanId}</white>，只有你能管理這張牌桌", MJColor.GREEN)
         manage(manager, player, session)
     }
 
@@ -228,10 +226,10 @@ object MahjongPanel {
     private fun placementError(player: Player, center: Location, playerCount: Int, quarter: Int = 0): String? {
         val blocks = MahjongTable.footprint(center, playerCount, quarter)
         if (residenceAvailable && blocks.any { !ResidenceHook.canBuild(player, it) }) {
-            return "你在這塊領地沒有建築權限"
+            return "您在這塊領地沒有建築權限！"
         }
         if (blocks.any { !it.block.isReplaceable }) {
-            return "空間不足，牌桌需要 5×5 範圍、兩格高的淨空"
+            return "空間不足，牌桌需要 5x5 範圍、兩格高的淨空"
         }
         return null
     }
@@ -263,12 +261,12 @@ object MahjongPanel {
     private fun sendKickPrompt(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
         if (!guard(manager, session, player, "mahjongplay.command.kick")) return
         if (session.game.players.isEmpty()) {
-            player.msg("牌桌上沒有玩家", MJColor.YELLOW)
+            player.msg("牌桌上沒有玩家", MJColor.RED)
             return
         }
         val buttons = session.game.players.mapIndexed { index, seated ->
             val who = if (seated.isRealPlayer) "玩家" else "電腦"
-            action("$index.${seated.displayName}", MJColor.YELLOW, ONCE, "把${who} ${seated.displayName} 踢出牌桌") {
+            action("${index + 1}. ${seated.displayName}", MJColor.YELLOW, ONCE, "把${who} ${seated.displayName} 踢出牌桌") {
                 kick(manager, it, session, index)
             }
         }
@@ -297,12 +295,12 @@ object MahjongPanel {
         if (!guard(manager, session, player, "mahjongplay.command.destroy")) return
         val name = session.humanId
         manager.destroyTable(session.tableId)
-        player.msg("$name 已銷毀", MJColor.YELLOW)
+        player.msg("<white>$name</white> 已銷毀", MJColor.DARK_RED)
     }
 
     private fun toggleReady(manager: MahjongTableManager, player: Player) {
         if (!player.hasPermission("mahjongplay.command.ready")) {
-            player.msg("你沒有權限準備", MJColor.RED)
+            player.msg("您沒有準備的權限！", MJColor.DARK_RED)
             return
         }
         val uuid = player.uniqueId.toString()
@@ -320,11 +318,11 @@ object MahjongPanel {
 
     private fun leave(manager: MahjongTableManager, player: Player) {
         if (!player.hasPermission("mahjongplay.command.leave")) {
-            player.msg("你沒有權限離開牌桌", MJColor.RED)
+            player.msg("您沒有離開牌桌的權限！", MJColor.DARK_RED)
             return
         }
         if (manager.leaveTable(player.uniqueId.toString())) {
-            player.msg("已離開牌桌", MJColor.YELLOW)
+            player.msg("已離開牌桌", MJColor.GRAY)
             open(manager, player)
         } else {
             player.msg("你不在任何牌桌中", MJColor.RED)
@@ -333,7 +331,7 @@ object MahjongPanel {
 
     private fun join(manager: MahjongTableManager, player: Player, session: MahjongTableSession) {
         if (!player.hasPermission("mahjongplay.command.join")) {
-            player.msg("你沒有權限加入牌桌", MJColor.RED)
+            player.msg("您沒有加入牌桌的權限！", MJColor.DARK_RED)
             return
         }
         if (manager.getSession(session.tableId) == null) {
@@ -341,7 +339,7 @@ object MahjongPanel {
             return
         }
         if (manager.joinTable(session.tableId, player.uniqueId.toString(), player.name)) {
-            player.msg("已加入 ${session.humanId}", MJColor.GREEN)
+            player.msg("已加入 <white>${session.humanId}</white>", MJColor.GREEN)
             manager.checkAutoStart(session)
             manage(manager, player, session)
         } else {
@@ -364,7 +362,7 @@ object MahjongPanel {
             return false
         }
         if (!player.hasPermission(permission)) {
-            player.msg("你沒有權限這麼做", MJColor.RED)
+            player.msg("您沒有執行此操作的權限！", MJColor.DARK_RED)
             return false
         }
         return true
@@ -377,13 +375,13 @@ object MahjongPanel {
         tooltip: String,
         clicked: (Player) -> Unit,
     ): ActionButton = ActionButton.builder(Component.text(label, color))
-        .tooltip(Component.text(tooltip, MJColor.YELLOW))
+        .tooltip(Component.text(tooltip, MJColor.GRAY))
         .action(DialogAction.customClick({ _, audience -> (audience as? Player)?.let(clicked) }, options))
         .build()
 
     private fun exit(label: String, tooltip: String): ActionButton =
         ActionButton.builder(Component.text(label, MJColor.GRAY))
-            .tooltip(Component.text(tooltip, MJColor.YELLOW))
+            .tooltip(Component.text(tooltip, MJColor.GRAY))
             .build()
 
     private fun show(
@@ -397,7 +395,7 @@ object MahjongPanel {
             Dialog.create { factory ->
                 factory.empty()
                     .base(
-                        DialogBase.builder(Component.text(title, MJColor.GOLD).decorate(TextDecoration.BOLD))
+                        DialogBase.builder(Component.text(title, MJColor.WHITE))
                             .body(body.map { DialogBody.plainMessage(it) })
                             .build()
                     )

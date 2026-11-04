@@ -4,7 +4,7 @@ import com.mahjongplay.util.TextFormatting
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.format.TextColor
 import com.mahjongplay.util.MJColor
 
 @Serializable
@@ -25,53 +25,39 @@ data class MahjongRule(
     fun toJsonString(): String = Json.encodeToString(serializer(), this)
 
     fun toComponents(): List<Component> {
-        val enable = Component.text("開啟").color(MJColor.GREEN)
-        val disable = Component.text("關閉").color(MJColor.GREEN)
+        val thinking = "${thinkingTime.base} + ${thinkingTime.extra} 秒"
+        val spectating = toggleRow("旁觀", spectate)
         if (taiwan) return listOf(
-            Component.text("規則（台灣十六張）").color(MJColor.RED).decorate(TextDecoration.BOLD),
-            Component.text(" - 局數：").color(MJColor.YELLOW)
-                .append(length.toText().color(MJColor.GREEN)),
-            Component.text(" - 思考時間：").color(MJColor.YELLOW)
-                .append(Component.text("${thinkingTime.base}").color(MJColor.AQUA))
-                .append(Component.text(" + ").color(MJColor.RED))
-                .append(Component.text("${thinkingTime.extra}").color(MJColor.AQUA))
-                .append(Component.text(" 秒").color(MJColor.GREEN)),
-            Component.text(" - 起始點數：").color(MJColor.YELLOW)
-                .append(Component.text("$startingPoints").color(MJColor.GREEN)),
-            Component.text(" - 底／台：").color(MJColor.YELLOW)
-                .append(Component.text("$TAIWAN_BASE／$TAIWAN_PER_TAI").color(MJColor.GREEN)),
-            Component.text(" - 花牌：").color(MJColor.YELLOW)
-                .append(Component.text("8 張，摸到自動補牌").color(MJColor.GREEN)),
-            Component.text(" - 留牌：").color(MJColor.YELLOW)
-                .append(Component.text("$TAIWAN_RESERVE 張").color(MJColor.GREEN)),
-            Component.text(" - 莊家：").color(MJColor.YELLOW)
-                .append(Component.text("莊家胡牌或流局連莊，每連一莊多 2 台").color(MJColor.GREEN)),
-            Component.text(" - 旁觀：").color(MJColor.YELLOW)
-                .append(if (spectate) enable else disable)
+            Component.text("規則（台灣十六張）", MJColor.WHITE),
+            row("局數", length.displayText),
+            row("思考時間", thinking),
+            row("起始點數", "$startingPoints"),
+            row("底／台", "$TAIWAN_BASE／$TAIWAN_PER_TAI"),
+            row("花牌", "8 張，摸到自動補牌"),
+            row("留牌", "$TAIWAN_RESERVE 張"),
+            row("莊家", "莊家胡牌或流局連莊，每連一莊多 2 台"),
+            spectating
         )
         return listOf(
-            Component.text("規則").color(MJColor.RED).decorate(TextDecoration.BOLD),
-            Component.text(" - 局數：").color(MJColor.YELLOW)
-                .append(length.toText().color(MJColor.GREEN)),
-            Component.text(" - 思考時間：").color(MJColor.YELLOW)
-                .append(Component.text("${thinkingTime.base}").color(MJColor.AQUA))
-                .append(Component.text(" + ").color(MJColor.RED))
-                .append(Component.text("${thinkingTime.extra}").color(MJColor.AQUA))
-                .append(Component.text(" 秒").color(MJColor.GREEN)),
-            Component.text(" - 起始點數：").color(MJColor.YELLOW)
-                .append(Component.text("$startingPoints").color(MJColor.GREEN)),
-            Component.text(" - 1位必要點數：").color(MJColor.YELLOW)
-                .append(Component.text("$minPointsToWin").color(MJColor.GREEN)),
-            Component.text(" - 翻縛：").color(MJColor.YELLOW)
-                .append(Component.text("${minimumHan.han}").color(MJColor.GREEN)),
-            Component.text(" - 旁觀：").color(MJColor.YELLOW)
-                .append(if (spectate) enable else disable),
-            Component.text(" - 赤寶牌：").color(MJColor.YELLOW)
-                .append(Component.text("${redFive.quantity}").color(MJColor.GREEN)),
-            Component.text(" - 食斷：").color(MJColor.YELLOW)
-                .append(if (openTanyao) enable else disable)
+            Component.text("規則", MJColor.WHITE),
+            row("局數", length.displayText),
+            row("思考時間", thinking),
+            row("起始點數", "$startingPoints"),
+            row("1 位必要點數", "$minPointsToWin"),
+            row("翻縛", "${minimumHan.han}"),
+            spectating,
+            row("赤寶牌", "${redFive.quantity}"),
+            toggleRow("食斷", openTanyao)
         )
     }
+
+    private fun row(label: String, value: String, color: TextColor = MJColor.WHITE): Component =
+        Component.text(" - ", MJColor.DARK_GRAY)
+            .append(Component.text("$label：", MJColor.GRAY))
+            .append(Component.text(value, color))
+
+    private fun toggleRow(label: String, enabled: Boolean): Component =
+        row(label, if (enabled) "開啟" else "關閉", if (enabled) MJColor.GREEN else MJColor.RED)
 
     companion object {
         fun fromJsonString(jsonString: String): MahjongRule = Json.decodeFromString(serializer(), jsonString)

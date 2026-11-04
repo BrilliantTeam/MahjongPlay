@@ -5,7 +5,6 @@ import com.mahjongplay.display.ReadyToggle
 import com.mahjongplay.display.SeatPlates
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Material

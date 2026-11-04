@@ -2,6 +2,7 @@ package com.mahjongplay.interaction
 
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
+import com.mahjongplay.util.chatLine
 import com.mahjongplay.util.MESSAGE_PREFIX
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
@@ -9,7 +10,6 @@ import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import com.mahjongplay.util.MJColor
 import net.kyori.adventure.text.format.TextColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
@@ -17,9 +17,7 @@ import java.util.UUID
 object ChatActionSender {
 
     fun sendDiscardPrompt(player: Player, gameId: UUID, cannotDiscard: List<MahjongTile>, hands: List<MahjongTile>) {
-        val msg = MESSAGE_PREFIX
-            .append(Component.text("請出牌（點擊自己的手牌）", MJColor.YELLOW))
-        player.sendMessage(msg)
+        player.sendMessage(chatLine("請出牌（點擊自己的手牌）", MJColor.WHITE))
     }
 
     fun sendActionPrompt(player: Player, gameId: UUID, actions: List<MahjongGameBehavior>, tile: MahjongTile?) {
@@ -29,7 +27,7 @@ object ChatActionSender {
             val label = action.toText()
             val cmd = "/mahjong action ${action.name} ${tile?.code ?: ""}"
             val button = Component.text("[", MJColor.GRAY)
-                .append(label.color(actionColor(action)).decorate(TextDecoration.BOLD))
+                .append(label.color(actionColor(action)))
                 .append(Component.text("]", MJColor.GRAY))
                 .hoverEvent(hover(actionHint(action, tile)))
                 .clickEvent(ClickEvent.runCommand(cmd))
@@ -48,7 +46,7 @@ object ChatActionSender {
         player.sendMessage(msg)
     }
 
-    private fun hover(text: String) = HoverEvent.showText(Component.text(text, MJColor.YELLOW))
+    private fun hover(text: String) = HoverEvent.showText(Component.text(text, MJColor.GRAY))
 
     private fun actionHint(action: MahjongGameBehavior, tile: MahjongTile?): String {
         val target = tile?.displayName ?: "這張牌"
@@ -72,7 +70,7 @@ object ChatActionSender {
     }
 
     fun sendChiiOptions(player: Player, gameId: UUID, tile: MahjongTile, pairs: List<Pair<MahjongTile, MahjongTile>>) {
-        var msg = MESSAGE_PREFIX.append(Component.text("選擇吃的組合：", MJColor.GOLD))
+        var msg = MESSAGE_PREFIX.append(Component.text("選擇吃的組合：", MJColor.WHITE))
         pairs.forEach { (a, b) ->
             val cmd = "/mahjong action CHII ${a.code},${b.code}"
             val label = "${a.displayName}+${b.displayName}"
@@ -92,7 +90,7 @@ object ChatActionSender {
     }
 
     fun sendAnkanKakanOptions(player: Player, tiles: Set<MahjongTile>, kanType: String) {
-        var msg = MESSAGE_PREFIX.append(Component.text("選擇${if (kanType == "ankan") "暗槓" else "加槓"}的牌：", MJColor.GOLD))
+        var msg = MESSAGE_PREFIX.append(Component.text("選擇${if (kanType == "ankan") "暗槓" else "加槓"}的牌：", MJColor.WHITE))
         val kanName = if (kanType == "ankan") "暗槓" else "加槓"
         tiles.forEach { tile ->
             val cmd = "/mahjong action ANKAN_OR_KAKAN ${tile.code}"
@@ -111,14 +109,14 @@ object ChatActionSender {
     }
 
     fun sendRiichiOptions(player: Player, tilePairs: List<Pair<MahjongTile, List<MahjongTile>>>) {
-        var msg = MESSAGE_PREFIX.append(Component.text("立直 - 選擇打出的牌：", MJColor.GOLD))
+        var msg = MESSAGE_PREFIX.append(Component.text("選擇立直打出的牌：", MJColor.WHITE))
         tilePairs.forEach { (tile, machi) ->
-            val machiStr = machi.joinToString(",") { it.displayName }
+            val machiStr = machi.joinToString("、") { it.displayName }
             val cmd = "/mahjong action RIICHI ${tile.code}"
             val button = Component.text("[${tile.displayName}]", MJColor.RED)
                 .hoverEvent(hover("立直並打出 ${tile.displayName}，聽 $machiStr"))
                 .clickEvent(ClickEvent.runCommand(cmd))
-                .append(Component.text("→$machiStr ", MJColor.YELLOW))
+                .append(Component.text(" 聽 $machiStr  ", MJColor.GRAY))
             msg = msg.append(button)
         }
         msg = msg.append(

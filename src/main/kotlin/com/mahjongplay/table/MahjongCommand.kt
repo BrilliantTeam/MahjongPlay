@@ -2,7 +2,7 @@ package com.mahjongplay.table
 
 import com.mahjongplay.game.MahjongPlayer
 import com.mahjongplay.model.MahjongGameBehavior
-import com.mahjongplay.util.MESSAGE_PREFIX
+import com.mahjongplay.util.chatLine
 import com.mahjongplay.util.msg
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
@@ -16,13 +16,13 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
-            sender.sendMessage(MESSAGE_PREFIX.append(Component.text("這個指令只有玩家能使用", MJColor.RED)))
+            sender.sendMessage(chatLine("此指令只能由玩家使用", MJColor.RED))
             return true
         }
 
         if (args.firstOrNull()?.lowercase() == "action") {
             if (!sender.hasPermission("mahjongplay.command.action")) {
-                sender.msg("你沒有權限執行麻將操作", MJColor.RED)
+                sender.msg("您沒有執行麻將操作的權限！", MJColor.DARK_RED)
                 return true
             }
             handleAction(sender, args)

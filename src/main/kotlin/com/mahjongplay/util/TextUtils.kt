@@ -3,7 +3,7 @@ package com.mahjongplay.util
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.entity.Player
 
 interface TextFormatting {
@@ -13,6 +13,7 @@ interface TextFormatting {
 object MJColor {
     val GREEN: TextColor = TextColor.color(0xCFFFC0)
     val RED: TextColor = TextColor.color(0xFF7A7A)
+    val DARK_RED: TextColor = TextColor.color(0xFF5555)
     val YELLOW: TextColor = TextColor.color(0xF6E0A4)
     val GOLD: TextColor = TextColor.color(0xF6C236)
     val LIGHT_PURPLE: TextColor = TextColor.color(0xE6BBF6)
@@ -27,8 +28,16 @@ object MJColor {
     val DARK_GREEN: TextColor = NamedTextColor.DARK_GREEN
 }
 
-val MESSAGE_PREFIX: Component =
-    LegacyComponentSerializer.legacySection().deserialize("§7｜§6系統§7｜§f飯娘：§7")
+private val MM = MiniMessage.miniMessage()
+
+const val SEP = "<dark_gray>｜</dark_gray>"
+
+val MESSAGE_PREFIX: Component = MM.deserialize("<gray>｜<gold>系統<gray>｜<white>飯娘：")
+
+fun styled(text: String, color: TextColor): Component = MM.deserialize(text).colorIfAbsent(color)
+
+fun chatLine(text: String, color: TextColor): Component =
+    MESSAGE_PREFIX.append(styled(if (MM.stripTags(text).takeLast(1) in "。！？：") text else "$text。", color))
 
 fun machiText(machi: Map<com.mahjongplay.model.MahjongTile, Boolean>): Component {
     var text = Component.empty()
@@ -48,9 +57,9 @@ fun machiText(machi: List<com.mahjongplay.model.MahjongTile>): Component =
     machiText(machi.associateWith { true })
 
 fun Player.msg(text: String, color: TextColor) {
-    sendMessage(MESSAGE_PREFIX.append(Component.text(text, color)))
+    sendMessage(chatLine(text, color))
 }
 
 fun Player.actionBarMsg(msg: Component) {
-    sendActionBar(MESSAGE_PREFIX.append(msg))
+    sendActionBar(msg)
 }

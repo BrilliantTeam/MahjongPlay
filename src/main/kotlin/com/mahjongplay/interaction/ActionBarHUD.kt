@@ -11,7 +11,6 @@ import com.mahjongplay.util.actionBarMsg
 import com.mahjongplay.util.machiText
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
-import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player

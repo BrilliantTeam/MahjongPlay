@@ -4,6 +4,8 @@ import com.mahjongplay.display.BoardRenderer
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
 import com.mahjongplay.ui.TurnTimerBar
+import com.mahjongplay.util.styled
+import com.mahjongplay.util.chatLine
 import com.mahjongplay.util.CancelTask
 import com.mahjongplay.util.MESSAGE_PREFIX
 import com.mahjongplay.util.ScheduleUtil
@@ -34,7 +36,7 @@ class PaperGameBridge(
             it.pendingActionListener = this
         }
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
-        broadcast(MESSAGE_PREFIX.append(Component.text("開局！", MJColor.GOLD)))
+        broadcast(chatLine("開局！", MJColor.GREEN))
         sound(Sound.BLOCK_NOTE_BLOCK_BELL, 0.7f, 1.0f)
         startHudUpdates()
         turnTimerBar.cleanup()
@@ -45,8 +47,8 @@ class PaperGameBridge(
         renderer.onRoundStart(game, round)
         sound(Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.0f)
         val title = Title.title(
-            Component.text(round.displayName(), MJColor.GOLD),
-            Component.text("${if (game.rule.taiwan) "連莊" else "本場"}${round.honba}", MJColor.YELLOW),
+            Component.text(round.displayName(), MJColor.WHITE),
+            styled("${if (game.rule.taiwan) "連莊" else "本場"} <white>${round.honba}</white>", MJColor.GRAY),
             Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500))
         )
         forEachPlayer { it.showTitle(title) }
@@ -85,7 +87,7 @@ class PaperGameBridge(
         sound(Sound.BLOCK_NOTE_BLOCK_HARP, 0.8f, 1.3f)
         showEventTitle(
             Component.text("吃！", MJColor.GREEN),
-            Component.text(player.displayName, MJColor.AQUA)
+            Component.text(player.displayName, MJColor.WHITE)
         )
     }
 
@@ -94,7 +96,7 @@ class PaperGameBridge(
         sound(Sound.BLOCK_NOTE_BLOCK_HARP, 0.9f, 0.9f)
         showEventTitle(
             Component.text("碰！", MJColor.BLUE),
-            Component.text(player.displayName, MJColor.AQUA)
+            Component.text(player.displayName, MJColor.WHITE)
         )
     }
 
@@ -103,7 +105,7 @@ class PaperGameBridge(
         sound(Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.7f)
         showEventTitle(
             Component.text("槓！", MJColor.DARK_AQUA),
-            Component.text(player.displayName, MJColor.AQUA)
+            Component.text(player.displayName, MJColor.WHITE)
         )
     }
 
@@ -112,7 +114,7 @@ class PaperGameBridge(
         sound(Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f)
         showEventTitle(
             Component.text("立直！", MJColor.LIGHT_PURPLE),
-            Component.text(player.displayName, MJColor.AQUA)
+            Component.text(player.displayName, MJColor.WHITE)
         )
     }
 
@@ -123,7 +125,7 @@ class PaperGameBridge(
         sound(Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.4f)
         showEventTitle(
             Component.text("自摸！", MJColor.GOLD),
-            Component.text(player.displayName, MJColor.AQUA)
+            Component.text(player.displayName, MJColor.WHITE)
         )
         sendYakuSummary(settlement)
     }
@@ -133,10 +135,10 @@ class PaperGameBridge(
             winners.forEach { renderer.revealHands(it) }
         })
         sound(Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.0f)
-        val names = winners.joinToString(", ") { it.displayName }
+        val names = winners.joinToString("、") { it.displayName }
         showEventTitle(
             Component.text("榮和！", MJColor.RED),
-            Component.text(names, MJColor.AQUA)
+            Component.text(names, MJColor.WHITE)
         )
         settlements.forEach { sendYakuSummary(it) }
     }
@@ -149,18 +151,17 @@ class PaperGameBridge(
         }
         sound(Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, 0.6f)
         showEventTitle(
-            draw.toText().color(MJColor.YELLOW),
+            draw.toText().color(MJColor.WHITE),
             Component.text("流局", MJColor.GRAY)
         )
     }
 
     override fun onScoreSettlement(settlement: ScoreSettlement) {
         settlement.rankedScoreList.forEachIndexed { index, ranked ->
-            val line = Component.text("  ${index + 1}. ", MJColor.YELLOW)
-                .append(Component.text(ranked.scoreItem.displayName, MJColor.AQUA))
-                .append(Component.text("  ${ranked.scoreTotal}點", MJColor.WHITE))
-                .append(Component.text("（${ranked.scoreChangeText}）", MJColor.GRAY))
-            broadcast(line)
+            broadcast(MESSAGE_PREFIX.append(styled(
+                "<white>${index + 1}. ${ranked.scoreItem.displayName} <dark_gray>- <#F6E0A4>${ranked.scoreTotal} 點 <gray>（${ranked.scoreChangeText}）",
+                MJColor.WHITE
+            )))
         }
     }
 
@@ -174,11 +175,11 @@ class PaperGameBridge(
                 it.table.showActionButtons()
                 tableManager.registerJoinInteraction(it)
             }
-            broadcast(MESSAGE_PREFIX.append(Component.text("牌局結束！", MJColor.GOLD)))
+            broadcast(chatLine("牌局結束！", MJColor.WHITE))
             sound(Sound.BLOCK_NOTE_BLOCK_BELL, 0.7f, 0.8f)
             val sorted = scoreList.sortedByDescending { it.scoreOrigin }
             sorted.forEachIndexed { index, item ->
-                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}點", MJColor.YELLOW))
+                broadcast(MESSAGE_PREFIX.append(styled("<white>${index + 1}. ${item.displayName} <dark_gray>- <#F6E0A4>${item.scoreOrigin} 點", MJColor.WHITE)))
             }
         }
         ScheduleUtil.region(renderer.tableCenter, task)
@@ -186,9 +187,11 @@ class PaperGameBridge(
 
     private fun sendYakuSummary(settlement: YakuSettlement) {
         if (game.rule.taiwan) {
-            val tais = settlement.taiList.joinToString("、") { "${it.first} ${it.second}台" }.ifEmpty { "無台" }
-            broadcast(Component.text("  ${settlement.displayName}：$tais", MJColor.GREEN)
-                .append(Component.text(" 共${settlement.han}台", MJColor.YELLOW)))
+            val tais = settlement.taiList.joinToString("、") { "${it.first} ${it.second} 台" }.ifEmpty { "無台" }
+            broadcast(MESSAGE_PREFIX.append(styled(
+                "<white>${settlement.displayName}<gray>：$tais <dark_gray>- <#F6E0A4>共 ${settlement.han} 台",
+                MJColor.GRAY
+            )))
             return
         }
         val yakuNames = buildList {
@@ -196,16 +199,16 @@ class PaperGameBridge(
             addAll(settlement.yakumanList.map { YakuNameChinese.getName(it) })
             addAll(settlement.doubleYakumanList.map { PlainTextComponentSerializer.plainText().serialize(it.toText()) })
             if (settlement.nagashiMangan) add("流局滿貫")
-            if (settlement.nukiDoraCount > 0) add("拔北×${settlement.nukiDoraCount}")
+            if (settlement.nukiDoraCount > 0) add("拔北 x${settlement.nukiDoraCount}")
         }
         if (yakuNames.isEmpty()) return
 
         val scoreLine = buildString {
             val isYakuman = settlement.yakumanList.isNotEmpty() || settlement.doubleYakumanList.isNotEmpty()
             if (!isYakuman && !settlement.nagashiMangan) {
-                append(" ${settlement.han}翻${settlement.fu}符")
+                append(" ${settlement.han} 翻 ${settlement.fu} 符")
             }
-            append(" ${settlement.score}點")
+            append(" ${settlement.score} 點")
             val alias = when {
                 settlement.nagashiMangan -> "滿貫"
                 isYakuman -> {
@@ -222,11 +225,13 @@ class PaperGameBridge(
                 settlement.han >= 5 || (settlement.fu >= 40 && settlement.han == 4) || (settlement.fu >= 70 && settlement.han == 3) -> "滿貫"
                 else -> null
             }
-            if (alias != null) append("  !!$alias!!")
+            if (alias != null) append(" <#F6C236>$alias")
         }
 
-        broadcast(Component.text("  役：${yakuNames.joinToString(", ")}", MJColor.GREEN)
-            .append(Component.text(scoreLine, MJColor.YELLOW)))
+        broadcast(MESSAGE_PREFIX.append(styled(
+            "<gray>役：<#FAEDE7>${yakuNames.joinToString("、")} <dark_gray>- <#F6E0A4>${scoreLine.trim()}",
+            MJColor.GRAY
+        )))
     }
 
     private fun startHudUpdates() {

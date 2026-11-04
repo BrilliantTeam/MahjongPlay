@@ -34,7 +34,7 @@ class EntityInteractionListener(
         event.isCancelled = true
         val player = event.player
         if (!player.hasPermission("mahjongplay.command.create")) {
-            player.msg("你沒有權限建立牌桌", MJColor.RED)
+            player.msg("您沒有建立牌桌的權限！", MJColor.DARK_RED)
             return
         }
         val center = Location(block.world, block.x + 0.5, (block.y + 1).toDouble(), block.z + 0.5)
@@ -76,7 +76,7 @@ class EntityInteractionListener(
             val existingSession = gameManager.getSessionForPlayer(playerUUID)
             if (existingSession != null && existingSession.tableId == joinSession.tableId) {
                 gameManager.leaveTable(playerUUID)
-                player.msg("已退出牌桌", MJColor.YELLOW)
+                player.msg("已退出牌桌", MJColor.GRAY)
                 return
             }
 
@@ -106,7 +106,7 @@ class EntityInteractionListener(
             readySession.game.readyOrNot(playerUUID, newReady)
             gameManager.updateTableDisplay(readySession)
             gameManager.checkAutoStart(readySession)
-            player.msg(if (newReady) "已準備 ✓" else "取消準備 ✗", if (newReady) MJColor.GREEN else MJColor.YELLOW)
+            player.msg(if (newReady) "已準備" else "已取消準備", if (newReady) MJColor.GREEN else MJColor.GRAY)
             return
         }
 

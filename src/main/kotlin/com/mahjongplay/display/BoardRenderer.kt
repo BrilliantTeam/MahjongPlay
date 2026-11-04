@@ -7,11 +7,12 @@ import com.mahjongplay.display.TileConstants.PADDING
 import com.mahjongplay.display.TileConstants.WIDTH
 import com.mahjongplay.game.*
 import com.mahjongplay.model.*
+import com.mahjongplay.util.SEP
+import com.mahjongplay.util.styled
 import com.mahjongplay.util.ScheduleUtil
 import fr.skytasul.glowingentities.GlowingEntities
 import net.kyori.adventure.text.Component
 import com.mahjongplay.util.MJColor
-import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
 import org.bukkit.Color
 import org.bukkit.Location
@@ -413,9 +414,9 @@ class BoardRenderer(
 
         val mjPlayer = game.seat.find { it.uuid == playerUUID } as? com.mahjongplay.game.MahjongPlayer
         if (mjPlayer != null) {
-            val machiStr = machi.joinToString(",") { it.displayName }
+            val machiStr = machi.joinToString("、") { it.displayName }
             mjPlayer.riichiActionBarOverride = Component.text("立直出牌：${tile.displayName}", MJColor.LIGHT_PURPLE)
-                .append(Component.text(" ｜ 聽：$machiStr", MJColor.YELLOW))
+                .append(styled(" $SEP <gray>聽 <white>$machiStr", MJColor.GRAY))
         }
 
         return false
